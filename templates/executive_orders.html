@@ -244,6 +244,16 @@
             orderModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 
+                // Debug the button element
+                console.log("Button (event.relatedTarget):", button);
+                
+                // Try to parse any JSON data that might be present (even if we're not using it currently)
+                try {
+                    console.log("JSON parsing attempt:", JSON.parse(button.getAttribute('data-order-json')));
+                } catch (e) {
+                    console.log("JSON parse error:", e);
+                }
+                
                 // Helper function to safely get attribute
                 function getDataAttribute(element, attributeName, defaultValue = '') {
                     const value = element.getAttribute(attributeName);
