@@ -10,22 +10,62 @@ logger = logging.getLogger(__name__)
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "YOUR_API_KEY")
 NEWS_API_URL = "https://newsapi.org/v2"
 
-def fetch_news(country="us", category="technology", page_size=24):
+# List of approved conservative news sources
+APPROVED_SOURCES = [
+    "foxnews.com",
+    "nypost.com",
+    "washingtontimes.com",
+    "theepochtimes.com",
+    "breitbart.com",
+    "dailywire.com",
+    "oann.com",
+    "newsmax.com",
+    "theblaze.com",
+    "westernjournal.com",
+    "dailycaller.com",
+    "washingtonexaminer.com",
+    "spectator.org"
+]
+
+def is_approved_source(article):
+    """
+    Check if an article comes from an approved source
+    
+    Args:
+        article: Article object from NewsAPI
+        
+    Returns:
+        Boolean indicating if the source is approved
+    """
+    if not article or not article.get('url'):
+        return False
+        
+    article_url = article.get('url', '').lower()
+    
+    # Check if the article URL contains any of the approved domains
+    for source in APPROVED_SOURCES:
+        if source.lower() in article_url:
+            return True
+            
+    return False
+
+def fetch_news(country="us", category="general", page_size=100):
     """
     Fetch trending news from NewsAPI
     
     Args:
         country: Country code (default: 'us')
-        category: News category (default: 'technology')
-        page_size: Number of articles to fetch (default: 24)
+        category: News category (default: 'general')
+        page_size: Number of articles to fetch (default: 100)
         
     Returns:
-        List of news articles
+        List of news articles from approved conservative sources
     """
-    logger.info(f"Fetching trending news for {country} in {category} category")
+    logger.info(f"Fetching conservative trending news for {country} in {category} category")
     
     try:
-        # Fetch trending headlines
+        # Fetch trending headlines with a larger page size to ensure we get enough articles
+        # after filtering
         url = f"{NEWS_API_URL}/top-headlines"
         params = {
             "country": country,
@@ -38,11 +78,15 @@ def fetch_news(country="us", category="technology", page_size=24):
         response.raise_for_status()
         
         data = response.json()
-        articles = data.get("articles", [])
+        all_articles = data.get("articles", [])
+        
+        # Filter articles from approved sources only
+        filtered_articles = [article for article in all_articles if is_approved_source(article)]
+        logger.info(f"Filtered {len(filtered_articles)} approved articles from {len(all_articles)} total articles")
         
         # Enhance articles with additional content from original source
         enhanced_articles = []
-        for article in articles:
+        for article in filtered_articles:
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
@@ -64,36 +108,59 @@ def fetch_news(country="us", category="technology", page_size=24):
         logger.error(f"Error fetching news: {str(e)}")
         raise Exception(f"Error fetching news: {str(e)}")
 
-def search_news(query, language="en", page_size=24):
+def search_news(query, language="en", page_size=100):
     """
-    Search for news articles by keyword
+    Search for news articles by keyword from approved conservative sources
     
     Args:
         query: Search term
         language: Language code (default: 'en')
-        page_size: Number of articles to fetch (default: 24)
+        page_size: Number of articles to fetch (default: 100)
         
     Returns:
-        List of news articles matching the query
+        List of news articles matching the query from approved sources
     """
-    logger.info(f"Searching news for query: {query}")
+    logger.info(f"Searching conservative news for query: {query}")
     
     try:
+        # Check if query includes a site: prefix, which means user is searching for a specific site
+        is_site_specific = query.startswith("site:")
+        
         # Search for articles
         url = f"{NEWS_API_URL}/everything"
-        params = {
-            "q": query,
-            "language": language,
-            "pageSize": page_size,
-            "sortBy": "relevancy",
-            "apiKey": NEWS_API_KEY
-        }
+        
+        # If there's a site: prefix, use that specific domain. Otherwise, use all approved domains.
+        if is_site_specific:
+            # Handle direct site queries (from the dropdown menu)
+            domain = query.split("site:")[1].strip()
+            search_query = ""  # Empty query to get all articles from this domain
+            params = {
+                "domains": domain,
+                "language": language,
+                "pageSize": page_size,
+                "sortBy": "publishedAt",
+                "apiKey": NEWS_API_KEY
+            }
+            logger.info(f"Searching for all articles from {domain}")
+        else:
+            # Create a domain query string for approved sources
+            domains = ','.join([source for source in APPROVED_SOURCES])
+            
+            params = {
+                "q": query,
+                "language": language,
+                "pageSize": page_size,
+                "sortBy": "relevancy",
+                "domains": domains,
+                "apiKey": NEWS_API_KEY
+            }
         
         response = requests.get(url, params=params)
         response.raise_for_status()
         
         data = response.json()
         articles = data.get("articles", [])
+        logger.info(f"Found {len(articles)} articles from approved sources matching query '{query}'")
         
         # Enhance articles with additional content
         enhanced_articles = []
