@@ -85,19 +85,16 @@
                                         <button class="btn btn-sm btn-primary view-details" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#orderModal" 
+                                                data-order-id="{{ order.id }}"
+                                                data-order-title="{{ order.title }}"
                                                 data-order-number="{{ order.order_number }}"
-                                                data-order-json='{{ {
-                                                    "id": order.id,
-                                                    "title": order.title,
-                                                    "order_number": order.order_number,
-                                                    "date": order.date_issued.strftime("%b %d, %Y"),
-                                                    "status": order.status,
-                                                    "category": order.category,
-                                                    "source": order.source,
-                                                    "url": order.url,
-                                                    "summary": order.summary,
-                                                    "full_text": order.full_text
-                                                }|tojson }}'>
+                                                data-order-date="{{ order.date_issued.strftime('%b %d, %Y') }}"
+                                                data-order-status="{{ order.status }}"
+                                                data-order-category="{{ order.category }}"
+                                                data-order-source="{{ order.source }}"
+                                                data-order-url="{{ order.url }}"
+                                                data-order-summary="{{ order.summary }}"
+                                                data-order-full-text="{{ order.full_text }}">
                                             View Details
                                         </button>
                                     </td>
@@ -247,37 +244,28 @@
             orderModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 
-                // Get JSON data from the button attribute
-                const orderNumber = button.getAttribute('data-order-number');
-                let orderData;
-                
-                try {
-                    orderData = JSON.parse(button.getAttribute('data-order-json'));
-                    console.log("Parsed order data:", orderData);
-                } catch (e) {
-                    console.error("Error parsing JSON data:", e);
-                    orderData = {
-                        title: 'Error loading data',
-                        order_number: orderNumber || 'N/A',
-                        date: 'N/A',
-                        status: 'Unknown',
-                        category: 'Uncategorized',
-                        source: 'Unknown Source',
-                        url: '',
-                        summary: 'There was an error loading the executive order data. Please try again later.',
-                        full_text: ''
-                    };
+                // Helper function to safely get attribute
+                function getDataAttribute(element, attributeName, defaultValue = '') {
+                    const value = element.getAttribute(attributeName);
+                    return (value !== null && value !== undefined && value !== '') ? value : defaultValue;
                 }
                 
-                // Extract values from the parsed JSON object
-                const title = orderData.title || 'No Title Available';
-                const date = orderData.date || 'N/A';
-                const summary = orderData.summary || '';
-                const url = orderData.url || '';
-                const status = orderData.status || 'Unknown';
-                const category = orderData.category || 'Uncategorized';
-                const source = orderData.source || 'Unknown Source';
-                const fullText = orderData.full_text || '';
+                // Get data directly from attributes
+                const title = getDataAttribute(button, 'data-order-title', 'No Title Available');
+                const orderNumber = getDataAttribute(button, 'data-order-number', 'N/A');
+                const date = getDataAttribute(button, 'data-order-date', 'N/A');
+                const summary = getDataAttribute(button, 'data-order-summary', '');
+                const url = getDataAttribute(button, 'data-order-url', '');
+                const status = getDataAttribute(button, 'data-order-status', 'Unknown');
+                const category = getDataAttribute(button, 'data-order-category', 'Uncategorized');
+                const source = getDataAttribute(button, 'data-order-source', 'Unknown Source');
+                const fullText = getDataAttribute(button, 'data-order-full-text', '');
+                
+                // Debug output
+                console.log("Order details:");
+                console.log("Title:", title);
+                console.log("Summary:", summary);
+                console.log("Full text:", fullText);
                 
                 // Update modal content
                 document.getElementById('modal-title').textContent = title || 'No Title Available';
