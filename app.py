@@ -121,11 +121,20 @@ def initialize_data():
         news_data["trending"] = []
         news_data["last_updated"] = datetime.now()
 
-# Background initialization to avoid blocking app startup
-threading.Thread(target=initialize_data).start()
+# Function to ensure initialization happens in an app context
+def initialize_with_app_context():
+    with app.app_context():
+        initialize_data()
 
-# Start the scheduler for periodic updates
-start_scheduler(news_data)
+# Background initialization to avoid blocking app startup
+threading.Thread(target=initialize_with_app_context).start()
+
+# Start the scheduler for periodic updates (wrapped in app context)
+def start_scheduler_with_context():
+    with app.app_context():
+        start_scheduler(news_data)
+        
+threading.Thread(target=start_scheduler_with_context).start()
 
 @app.route('/')
 def index():

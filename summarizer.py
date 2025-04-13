@@ -11,28 +11,37 @@ logger = logging.getLogger(__name__)
 
 # Download NLTK resources - handle SSL issues gracefully
 try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
+    # Set up SSL context for downloads
     try:
-        # Try with SSL context
-        try:
-            _create_unverified_https_context = ssl._create_unverified_context
-        except AttributeError:
-            pass
-        else:
-            ssl._create_default_https_context = _create_unverified_https_context
-        
-        nltk.download('punkt')
-    except Exception as e:
-        logger.error(f"Failed to download NLTK punkt: {str(e)}")
+        _create_unverified_https_context = ssl._create_unverified_context
+    except AttributeError:
+        pass
+    else:
+        ssl._create_default_https_context = _create_unverified_https_context
+    
+    # Download required NLTK data
+    nltk.download('punkt')
+    nltk.download('punkt_tab')
+    nltk.download('stopwords')
+    print("Successfully downloaded NLTK resources")
+except Exception as e:
+    logger.error(f"Failed to download NLTK resources: {str(e)}")
+    print(f"Failed to download NLTK resources: {str(e)}")
+    
+# Verify NLTK resources are available
+required_resources = [
+    ('tokenizers/punkt', 'punkt'),
+    ('tokenizers/punkt_tab', 'punkt_tab'),
+    ('corpora/stopwords', 'stopwords')
+]
 
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
+for resource_path, resource_name in required_resources:
     try:
-        nltk.download('stopwords')
-    except Exception as e:
-        logger.error(f"Failed to download NLTK stopwords: {str(e)}")
+        nltk.data.find(resource_path)
+        print(f"NLTK resource {resource_name} is available")
+    except LookupError:
+        print(f"NLTK resource {resource_name} is NOT available")
+        logger.warning(f"NLTK resource {resource_name} is not available")
 
 def generate_summary(text, num_sentences=3):
     """
