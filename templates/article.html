@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Article</li>
+                </ol>
+            </nav>
+            
+            <!-- Article Header -->
+            <div class="text-center mb-4">
+                <h1 class="display-5 fw-bold">{{ article.title }}</h1>
+                
+                <!-- Article Meta -->
+                <div class="d-flex justify-content-center align-items-center text-muted mb-4">
+                    {% if article.source and article.source.name %}
+                        <span class="me-3">
+                            <i class="bi bi-newspaper me-1"></i>
+                            {{ article.source.name }}
+                        </span>
+                    {% endif %}
+                    
+                    {% if article.published_time %}
+                        <span class="me-3">
+                            <i class="bi bi-calendar me-1"></i>
+                            {{ article.published_time }}
+                        </span>
+                    {% endif %}
+                    
+                    {% if article.author %}
+                        <span>
+                            <i class="bi bi-person me-1"></i>
+                            {{ article.author }}
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Share Buttons -->
+                <div class="mb-4">
+                    <button class="btn btn-outline-primary share-button" 
+                            data-url="{{ article.url }}" 
+                            data-title="{{ article.title }}">
+                        <i class="bi bi-share me-2"></i>
+                        Share this article
+                    </button>
+                    
+                    <a href="{{ article.url }}" class="btn btn-outline-secondary ms-2" target="_blank">
+                        <i class="bi bi-box-arrow-up-right me-2"></i>
+                        Read original
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Article Image -->
+    {% if article.urlToImage %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <img src="{{ article.urlToImage }}" class="img-fluid rounded" alt="{{ article.title }}" style="max-height: 500px;">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- AI Summary Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-robot me-2"></i>
+                    AI-Generated Summary
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if article.summary %}
+                            {{ article.summary }}
+                        {% else %}
+                            No AI summary available for this article.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Article Content -->
+    <div class="row">
+        <div class="col-12">
+            <div class="article-content">
+                {% if article.content and article.content != "Content not available" %}
+                    <p>{{ article.content|safe }}</p>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Full article content is not available here. Please visit the original source to read the complete article.
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ article.url }}" class="btn btn-primary btn-lg" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>
+                            Read full article at {{ article.source.name if article.source and article.source.name else 'source' }}
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Content -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">
+                <i class="bi bi-link-45deg me-2"></i>
+                Related Content
+            </h3>
+            
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                <!-- Sample related content -->
+                <div class="col">
+                    <div class="card h-100">
+                        <img src="https://images.unsplash.com/photo-1584714268709-c3dd9c92b378" class="card-img-top" alt="News headline">
+                        <div class="card-body">
+                            <h5 class="card-title">Staying Informed in the Digital Age</h5>
+                            <p class="card-text">Tips and strategies for managing information overload while staying informed.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col">
+                    <div class="card h-100">
+                        <img src="https://images.unsplash.com/photo-1611287158945-58d7fa81bb88" class="card-img-top" alt="News headline">
+                        <div class="card-body">
+                            <h5 class="card-title">The Role of AI in Modern Journalism</h5>
+                            <p class="card-text">How artificial intelligence is changing news creation and consumption.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col">
+                    <div class="card h-100">
+                        <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07" class="card-img-top" alt="Content sharing">
+                        <div class="card-body">
+                            <h5 class="card-title">Responsible News Sharing</h5>
+                            <p class="card-text">Why critical thinking matters before sharing news on social media.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

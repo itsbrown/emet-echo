@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="mb-4">
+                {% if error == "Page not found" %}
+                    <i class="bi bi-question-circle" style="font-size: 5rem;"></i>
+                {% else %}
+                    <i class="bi bi-exclamation-triangle" style="font-size: 5rem;"></i>
+                {% endif %}
+            </div>
+            
+            <h1 class="display-4 mb-4">
+                {% if error == "Page not found" %}
+                    404 - Page Not Found
+                {% else %}
+                    Oops! Something went wrong
+                {% endif %}
+            </h1>
+            
+            <p class="lead mb-4">
+                {% if error %}
+                    {{ error }}
+                {% else %}
+                    We encountered an error while processing your request.
+                {% endif %}
+            </p>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">What might have happened?</h5>
+                    <ul class="list-unstyled text-start">
+                        {% if error == "Page not found" %}
+                            <li><i class="bi bi-check-circle me-2"></i>The page you're looking for might have been moved or deleted</li>
+                            <li><i class="bi bi-check-circle me-2"></i>You might have mistyped the URL</li>
+                            <li><i class="bi bi-check-circle me-2"></i>The link you clicked might be outdated</li>
+                        {% else %}
+                            <li><i class="bi bi-check-circle me-2"></i>There might be an issue with our news sources</li>
+                            <li><i class="bi bi-check-circle me-2"></i>Our server might be experiencing temporary issues</li>
+                            <li><i class="bi bi-check-circle me-2"></i>The requested resource might not be available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                <a href="/" class="btn btn-primary btn-lg">
+                    <i class="bi bi-house me-2"></i>
+                    Back to Home
+                </a>
+                <button onclick="window.location.reload()" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    Try Again
+                </button>
+            </div>
+            
+            <!-- Error Illustration -->
+            <div class="mt-5">
+                <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12" class="img-fluid rounded" alt="Error illustration" style="max-height: 300px;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
