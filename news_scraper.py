@@ -64,13 +64,23 @@ def fetch_news(country="us", category="general", page_size=100):
     logger.info(f"Fetching conservative trending news for {country} in {category} category")
     
     try:
-        # Fetch trending headlines with a larger page size to ensure we get enough articles
-        # after filtering
-        url = f"{NEWS_API_URL}/top-headlines"
+        # Use the "everything" endpoint instead of "top-headlines" to have more flexibility
+        url = f"{NEWS_API_URL}/everything"
+        
+        # Create domain queries that NewsAPI can directly use
+        domains = ','.join(APPROVED_SOURCES)
+        
+        # Create a query based on category
+        query = category
+        if category == "general":
+            query = ""  # Empty query for general news to get more results
+            
         params = {
-            "country": country,
-            "category": category,
+            "domains": domains,
+            "q": query,
+            "language": "en",
             "pageSize": page_size,
+            "sortBy": "publishedAt",
             "apiKey": NEWS_API_KEY
         }
         
@@ -78,15 +88,12 @@ def fetch_news(country="us", category="general", page_size=100):
         response.raise_for_status()
         
         data = response.json()
-        all_articles = data.get("articles", [])
-        
-        # Filter articles from approved sources only
-        filtered_articles = [article for article in all_articles if is_approved_source(article)]
-        logger.info(f"Filtered {len(filtered_articles)} approved articles from {len(all_articles)} total articles")
+        articles = data.get("articles", [])
+        logger.info(f"Found {len(articles)} articles from approved conservative sources")
         
         # Enhance articles with additional content from original source
         enhanced_articles = []
-        for article in filtered_articles:
+        for article in articles:
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
