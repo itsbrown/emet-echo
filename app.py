@@ -524,6 +524,16 @@ def executive_orders():
         statuses = db.session.query(ExecutiveOrder.status).distinct().all()
         statuses = sorted([stat[0] for stat in statuses if stat[0]])
         
+        # If a specific order is requested but multiple filters were applied,
+        # redirect to just show that specific order
+        if order_number and len(orders) > 1:
+            return redirect(url_for('executive_orders', order=order_number))
+        
+        # If only one order is found and it's a specific request, show the detailed view
+        if len(orders) == 1 and order_number:
+            return render_template('executive_order_detail.html',
+                                order=orders[0])
+        
         return render_template('executive_orders.html',
                              orders=orders,
                              categories=categories,
