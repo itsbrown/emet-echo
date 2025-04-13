@@ -435,22 +435,24 @@ def trump_news():
         
         # Check if we have Trump articles in the database first
         trump_articles = Article.query.filter(
-            db.or_(
-                Article.title.ilike('%trump%'),
-                Article.description.ilike('%trump%')
-            ),
-            # Look for positive sentiment in title or description
-            db.or_(
-                Article.title.ilike('%success%'),
-                Article.title.ilike('%victory%'),
-                Article.title.ilike('%winning%'),
-                Article.title.ilike('%praised%'),
-                Article.title.ilike('%support%'),
-                Article.description.ilike('%success%'),
-                Article.description.ilike('%victory%'),
-                Article.description.ilike('%winning%'),
-                Article.description.ilike('%praised%'),
-                Article.description.ilike('%support%')
+            db.and_(
+                db.or_(
+                    Article.title.ilike('%trump%'),
+                    Article.description.ilike('%trump%')
+                ),
+                # Look for positive sentiment in title or description
+                db.or_(
+                    Article.title.ilike('%success%'),
+                    Article.title.ilike('%victory%'),
+                    Article.title.ilike('%winning%'),
+                    Article.title.ilike('%praised%'),
+                    Article.title.ilike('%support%'),
+                    Article.description.ilike('%success%'),
+                    Article.description.ilike('%victory%'),
+                    Article.description.ilike('%winning%'),
+                    Article.description.ilike('%praised%'),
+                    Article.description.ilike('%support%')
+                )
             )
         ).order_by(Article.published_at.desc()).limit(50).all()
         
@@ -503,7 +505,8 @@ def trump_news():
             trump_articles = Article.query.filter(
                 db.or_(
                     Article.title.ilike('%trump%'),
-                    Article.description.ilike('%trump%')
+                    Article.description.ilike('%trump%'),
+                    Article.category == 'trump'
                 )
             ).order_by(Article.published_at.desc()).limit(50).all()
         
