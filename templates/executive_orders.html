@@ -85,9 +85,9 @@
                                         <button class="btn btn-sm btn-primary view-details" data-bs-toggle="modal" data-bs-target="#orderModal" 
                                                 data-order-id="{{ order.id }}" data-order-title="{{ order.title }}" 
                                                 data-order-number="{{ order.order_number }}" data-order-date="{{ order.date_issued.strftime('%b %d, %Y') }}"
-                                                data-order-summary="{{ order.summary }}" data-order-url="{{ order.url }}"
-                                                data-order-status="{{ order.status }}" data-order-category="{{ order.category }}"
-                                                data-order-source="{{ order.source }}" data-order-full-text="{{ order.full_text }}">
+                                                data-order-summary="{{ order.summary|e }}" data-order-url="{{ order.url|e }}"
+                                                data-order-status="{{ order.status|e }}" data-order-category="{{ order.category|e }}"
+                                                data-order-source="{{ order.source|e }}" data-order-full-text="{{ order.full_text|e }}">
                                             View Details
                                         </button>
                                     </td>
@@ -237,43 +237,86 @@
             orderModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 
-                // Extract data
-                const title = button.getAttribute('data-order-title');
-                const orderNumber = button.getAttribute('data-order-number');
-                const date = button.getAttribute('data-order-date');
-                const summary = button.getAttribute('data-order-summary');
-                const url = button.getAttribute('data-order-url');
-                const status = button.getAttribute('data-order-status');
-                const category = button.getAttribute('data-order-category');
-                const source = button.getAttribute('data-order-source');
-                const fullText = button.getAttribute('data-order-full-text');
+                // Helper function to decode HTML entities
+                function decodeHTMLEntities(text) {
+                    if (!text) return '';
+                    
+                    const textArea = document.createElement('textarea');
+                    textArea.innerHTML = text;
+                    return textArea.value;
+                }
+                
+                // Extract data and decode HTML entities
+                const title = decodeHTMLEntities(button.getAttribute('data-order-title'));
+                const orderNumber = decodeHTMLEntities(button.getAttribute('data-order-number'));
+                const date = decodeHTMLEntities(button.getAttribute('data-order-date'));
+                const summary = decodeHTMLEntities(button.getAttribute('data-order-summary'));
+                const url = decodeHTMLEntities(button.getAttribute('data-order-url'));
+                const status = decodeHTMLEntities(button.getAttribute('data-order-status'));
+                const category = decodeHTMLEntities(button.getAttribute('data-order-category'));
+                const source = decodeHTMLEntities(button.getAttribute('data-order-source'));
+                const fullText = decodeHTMLEntities(button.getAttribute('data-order-full-text'));
                 
                 // Update modal content
-                document.getElementById('modal-title').textContent = title;
-                document.getElementById('modal-order-number').textContent = orderNumber;
-                document.getElementById('modal-date').textContent = date;
-                document.getElementById('modal-status').textContent = status;
-                document.getElementById('modal-category').textContent = category;
-                document.getElementById('modal-source').textContent = source;
-                document.getElementById('modal-summary').textContent = summary;
-                document.getElementById('modal-full-text').textContent = fullText;
+                document.getElementById('modal-title').textContent = title || 'No Title Available';
+                document.getElementById('modal-order-number').textContent = orderNumber || 'N/A';
+                document.getElementById('modal-date').textContent = date || 'N/A';
+                document.getElementById('modal-status').textContent = status || 'Unknown';
+                document.getElementById('modal-category').textContent = category || 'Uncategorized';
+                document.getElementById('modal-source').textContent = source || 'Unknown Source';
+                
+                // Set summary with proper handling
+                const modalSummary = document.getElementById('modal-summary');
+                if (summary && summary.trim().length > 0) {
+                    modalSummary.textContent = summary;
+                    modalSummary.classList.remove('text-muted');
+                } else {
+                    modalSummary.textContent = 'No summary available for this executive order.';
+                    modalSummary.classList.add('text-muted');
+                }
+                
+                // Set full text with proper handling
+                const modalFullText = document.getElementById('modal-full-text');
+                if (fullText && fullText.trim().length > 0) {
+                    modalFullText.textContent = fullText;
+                    document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.remove('disabled');
+                } else {
+                    modalFullText.textContent = 'Full text of this executive order is not available.';
+                    modalFullText.classList.add('text-muted');
+                    document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.add('disabled');
+                }
                 
                 // Extract and display key points
                 const keyPointsList = document.getElementById('modal-key-points');
                 keyPointsList.innerHTML = ''; // Clear previous points
                 
-                // Extract sentences from summary as key points
-                const sentences = summary.split(/(?<=\.)\s+/);
-                const keyPoints = sentences.slice(0, Math.min(4, sentences.length));
-                
-                keyPoints.forEach(point => {
-                    if (point.trim().length > 10) { // Ensure point has meaningful content
+                if (summary) {
+                    // Split on periods followed by spaces, or on periods at the end of the string
+                    const sentences = summary.split(/(?<=\.)\s+|(?<=\.)$/);
+                    const keyPoints = sentences.slice(0, Math.min(5, sentences.length));
+                    
+                    keyPoints.forEach(point => {
+                        if (point && point.trim().length > 10) { // Ensure point has meaningful content
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item';
+                            li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${point.trim()}`;
+                            keyPointsList.appendChild(li);
+                        }
+                    });
+                    
+                    // If no key points were extracted, add a fallback point
+                    if (keyPointsList.children.length === 0 && summary.trim().length > 0) {
                         const li = document.createElement('li');
                         li.className = 'list-group-item';
-                        li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${point.trim()}`;
+                        li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${summary.trim()}`;
                         keyPointsList.appendChild(li);
                     }
-                });
+                } else {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item text-muted';
+                    li.innerHTML = 'No key points available';
+                    keyPointsList.appendChild(li);
+                }
                 
                 // Update links
                 const officialLink = document.getElementById('modal-official-link');
