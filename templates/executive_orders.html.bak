@@ -82,9 +82,20 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('executive_orders', order=order.order_number) }}" class="btn btn-sm btn-primary">
+                                        <button class="btn btn-sm btn-primary view-details" 
+                                                data-order='{{ {
+                                                    "title": order.title,
+                                                    "order_number": order.order_number,
+                                                    "date": order.date_issued.strftime("%b %d, %Y"),
+                                                    "status": order.status,
+                                                    "category": order.category,
+                                                    "source": order.source,
+                                                    "url": order.url,
+                                                    "summary": order.summary,
+                                                    "full_text": order.full_text
+                                                }|tojson }}'">
                                             View Details
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             {% endfor %}
