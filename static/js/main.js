@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup search functionality
     setupSearch();
+    
+    // Set active navigation link
+    setActiveNavLink();
 });
 
 /**
@@ -123,4 +126,27 @@ function refreshNews() {
         // Redirect to refresh endpoint
         window.location.href = '/refresh';
     }
+}
+
+/**
+ * Set active navigation link based on current URL
+ */
+function setActiveNavLink() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+    
+    // First, remove all active classes
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Set active class based on current path
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPath) {
+            link.classList.add('active');
+        } else if (currentPath === '/' && href === '/') {
+            link.classList.add('active');
+        }
+    });
 }
