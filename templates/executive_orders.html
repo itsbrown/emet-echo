@@ -1,0 +1,213 @@
+{% extends "layout.html" %}
+
+{% block title %}Trump Executive Order Tracker{% endblock %}
+
+{% block content %}
+<div class="container pt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Trump Executive Order Tracker</h1>
+            <p class="lead">Track, search, and view summaries of President Trump's executive orders.</p>
+            <p class="text-muted">Last updated: {{ last_updated }}</p>
+            
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Filter Orders</h5>
+                    <form id="filterForm" method="get" action="{{ url_for('executive_orders') }}">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="category" class="form-label">Category</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">All Categories</option>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    {% for stat in statuses %}
+                                        <option value="{{ stat }}" {% if status == stat %}selected{% endif %}>{{ stat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="searchTerm" class="form-label">Search Term</label>
+                                <input type="text" class="form-control" id="searchTerm" name="search" value="{{ search }}" placeholder="Search by title or content">
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="{{ url_for('executive_orders') }}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Executive Orders List -->
+            {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Title</th>
+                                <th>Date Issued</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.title }}</td>
+                                    <td>{{ order.date_issued.strftime('%b %d, %Y') }}</td>
+                                    <td>{{ order.category }}</td>
+                                    <td>
+                                        {% if order.status == 'Active' %}
+                                            <span class="badge bg-success">{{ order.status }}</span>
+                                        {% elif order.status == 'Revoked' %}
+                                            <span class="badge bg-danger">{{ order.status }}</span>
+                                        {% elif order.status == 'Amended' %}
+                                            <span class="badge bg-warning">{{ order.status }}</span>
+                                        {% elif order.status == 'Pending Implementation' %}
+                                            <span class="badge bg-info">{{ order.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary view-details" data-bs-toggle="modal" data-bs-target="#orderModal" 
+                                                data-order-id="{{ order.id }}" data-order-title="{{ order.title }}" 
+                                                data-order-number="{{ order.order_number }}" data-order-date="{{ order.date_issued.strftime('%b %d, %Y') }}"
+                                                data-order-summary="{{ order.summary }}" data-order-url="{{ order.url }}"
+                                                data-order-status="{{ order.status }}" data-order-category="{{ order.category }}"
+                                                data-order-source="{{ order.source }}" data-order-full-text="{{ order.full_text }}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mt-4">
+                    <p>No executive orders found matching your criteria. Please try different filters or check back later.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Executive Order Details -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderModalLabel">Executive Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 id="modal-title"></h3>
+                        <p><strong>Order Number:</strong> <span id="modal-order-number"></span></p>
+                        <p><strong>Date Issued:</strong> <span id="modal-date"></span></p>
+                        <p><strong>Status:</strong> <span id="modal-status"></span></p>
+                        <p><strong>Category:</strong> <span id="modal-category"></span></p>
+                        <p><strong>Source:</strong> <span id="modal-source"></span></p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a id="modal-official-link" href="#" target="_blank" class="btn btn-outline-primary mb-3">
+                            <i class="bi bi-link-45deg"></i> View Official Document
+                        </a>
+                        <button class="btn btn-outline-secondary share-btn" 
+                                data-title="Trump Executive Order" 
+                                data-url="">
+                            <i class="bi bi-share"></i> Share
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Summary Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">AI-Generated Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <p id="modal-summary"></p>
+                    </div>
+                </div>
+                
+                <!-- Full Text Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Full Text</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="modal-full-text" style="white-space: pre-line;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle modal detail view
+        const orderModal = document.getElementById('orderModal');
+        if (orderModal) {
+            orderModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                
+                // Extract data
+                const title = button.getAttribute('data-order-title');
+                const orderNumber = button.getAttribute('data-order-number');
+                const date = button.getAttribute('data-order-date');
+                const summary = button.getAttribute('data-order-summary');
+                const url = button.getAttribute('data-order-url');
+                const status = button.getAttribute('data-order-status');
+                const category = button.getAttribute('data-order-category');
+                const source = button.getAttribute('data-order-source');
+                const fullText = button.getAttribute('data-order-full-text');
+                
+                // Update modal content
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-order-number').textContent = orderNumber;
+                document.getElementById('modal-date').textContent = date;
+                document.getElementById('modal-status').textContent = status;
+                document.getElementById('modal-category').textContent = category;
+                document.getElementById('modal-source').textContent = source;
+                document.getElementById('modal-summary').textContent = summary;
+                document.getElementById('modal-full-text').textContent = fullText;
+                
+                // Update links
+                const officialLink = document.getElementById('modal-official-link');
+                if (url && url !== 'None' && url !== '') {
+                    officialLink.href = url;
+                    officialLink.style.display = 'inline-block';
+                } else {
+                    officialLink.style.display = 'none';
+                }
+                
+                // Update share button
+                const shareBtn = document.querySelector('.share-btn');
+                shareBtn.setAttribute('data-url', window.location.origin + '/executive-orders?order=' + orderNumber);
+                shareBtn.setAttribute('data-title', 'Trump Executive Order: ' + title);
+            });
+        }
+    });
+</script>
+{% endblock %}

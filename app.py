@@ -115,6 +115,10 @@ def initialize_data():
         news_data["trending"] = stored_articles
         news_data["last_updated"] = datetime.now()
         
+        # Initialize executive orders database
+        from executive_orders import initialize_executive_orders
+        initialize_executive_orders()
+        
         logger.info(f"Initialized with {len(stored_articles)} trending articles")
     except Exception as e:
         logger.error(f"Error initializing data: {str(e)}")
@@ -475,6 +479,64 @@ def refresh_trending():
         flash(f"Error refreshing news: {str(e)}", "danger")
     
     return redirect(url_for('index'))
+
+@app.route('/executive-orders')
+def executive_orders():
+    """Display Trump executive orders with AI summaries"""
+    try:
+        from models import ExecutiveOrder
+        
+        # Get filter parameters
+        category = request.args.get('category', '')
+        status = request.args.get('status', '')
+        search = request.args.get('search', '')
+        order_number = request.args.get('order', '')
+        
+        # Build base query
+        query = ExecutiveOrder.query
+        
+        # Apply filters
+        if category:
+            query = query.filter(ExecutiveOrder.category.ilike(f'%{category}%'))
+        
+        if status:
+            query = query.filter(ExecutiveOrder.status == status)
+            
+        if search:
+            query = query.filter(
+                db.or_(
+                    ExecutiveOrder.title.ilike(f'%{search}%'),
+                    ExecutiveOrder.full_text.ilike(f'%{search}%'),
+                    ExecutiveOrder.summary.ilike(f'%{search}%')
+                )
+            )
+            
+        if order_number:
+            query = query.filter(ExecutiveOrder.order_number == order_number)
+        
+        # Get orders sorted by date (newest first)
+        orders = query.order_by(ExecutiveOrder.date_issued.desc()).all()
+        
+        # Get unique categories and statuses for filters
+        categories = db.session.query(ExecutiveOrder.category).distinct().all()
+        categories = sorted([cat[0] for cat in categories if cat[0]])
+        
+        statuses = db.session.query(ExecutiveOrder.status).distinct().all()
+        statuses = sorted([stat[0] for stat in statuses if stat[0]])
+        
+        return render_template('executive_orders.html',
+                             orders=orders,
+                             categories=categories,
+                             statuses=statuses,
+                             category=category,
+                             status=status,
+                             search=search,
+                             last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    
+    except Exception as e:
+        logger.error(f"Error displaying executive orders: {str(e)}")
+        flash(f"Error loading executive orders: {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def page_not_found(e):

@@ -37,3 +37,18 @@ class SearchHistory(db.Model):
     user_id = db.Column(db.String(100))  # Session ID or user ID
     query = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ExecutiveOrder(db.Model):
+    """Model for storing Trump Executive Orders"""
+    id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(50), unique=True)
+    title = db.Column(db.String(500))
+    date_issued = db.Column(db.DateTime)
+    full_text = db.Column(db.Text)
+    summary = db.Column(db.Text)
+    status = db.Column(db.String(100))  # e.g., Active, Revoked, Amended
+    category = db.Column(db.String(200))  # Policy area e.g., Immigration, Energy
+    url = db.Column(db.String(500))  # Link to official document
+    source = db.Column(db.String(300))  # Source of the executive order data
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
