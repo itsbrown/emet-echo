@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conservative NewsHub - Trusted Conservative News</title>
+    <title>NewsHub - Trusted Conservative & Independent News</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
@@ -20,7 +20,7 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <i class="bi bi-newspaper me-2"></i>
-                <span>Conservative NewsHub</span>
+                <span>NewsHub</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -45,7 +45,7 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="sourcesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Trusted Sources
+                            Conservative Sources
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="sourcesDropdown">
                             <li><a class="dropdown-item" href="/search?q=site:foxnews.com">Fox News</a></li>
@@ -56,6 +56,19 @@
                             <li><a class="dropdown-item" href="/search?q=site:theepochtimes.com">Epoch Times</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="independentSourcesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Independent Sources
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="independentSourcesDropdown">
+                            <li><a class="dropdown-item" href="/search?q=site:zerohedge.com">Zero Hedge</a></li>
+                            <li><a class="dropdown-item" href="/search?q=site:reason.com">Reason</a></li>
+                            <li><a class="dropdown-item" href="/search?q=site:thehill.com">The Hill</a></li>
+                            <li><a class="dropdown-item" href="/search?q=site:realclearpolitics.com">Real Clear Politics</a></li>
+                            <li><a class="dropdown-item" href="/search?q=site:theintercept.com">The Intercept</a></li>
+                            <li><a class="dropdown-item" href="/search?q=site:axios.com">Axios</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" id="refreshButton" onclick="refreshNews()">
                             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
@@ -63,7 +76,7 @@
                     </li>
                 </ul>
                 <form class="d-flex" id="searchForm" action="/search" method="get">
-                    <input id="searchInput" class="form-control me-2" type="search" name="q" placeholder="Search conservative news..." aria-label="Search" required>
+                    <input id="searchInput" class="form-control me-2" type="search" name="q" placeholder="Search news..." aria-label="Search" required>
                     <button class="btn btn-outline-light" type="submit">
                         <i class="bi bi-search"></i>
                     </button>
@@ -96,10 +109,10 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
-                    <p>© 2025 Conservative NewsHub - Truth-Focused News</p>
+                    <p>© 2025 NewsHub - Truth-Focused News</p>
                     <p>
                         <small>
-                            Featuring trusted conservative news sources. All content belongs to their respective owners.
+                            Featuring trusted conservative and independent news sources. All content belongs to their respective owners.
                         </small>
                     </p>
                 </div>

@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "YOUR_API_KEY")
 NEWS_API_URL = "https://newsapi.org/v2"
 
-# List of approved conservative news sources
+# List of approved conservative and independent news sources
 APPROVED_SOURCES = [
+    # Conservative news sources
     "foxnews.com",
     "nypost.com",
     "washingtontimes.com",
@@ -24,7 +25,19 @@ APPROVED_SOURCES = [
     "westernjournal.com",
     "dailycaller.com",
     "washingtonexaminer.com",
-    "spectator.org"
+    "spectator.org",
+    
+    # Independent news sources
+    "zerohedge.com",
+    "reason.com",
+    "thehill.com",
+    "realclearpolitics.com",
+    "axios.com",
+    "theintercept.com",
+    "justthenews.com",
+    "substack.com",
+    "ground.news",
+    "breakingpoints.com"
 ]
 
 def is_approved_source(article):
