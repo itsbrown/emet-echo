@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}Positive Trump News from Around the World{% endblock %}
+
+{% block content %}
+<div class="container pt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Positive Trump News from Around the World</h1>
+            <p class="lead">Latest positive news about President Trump, sourced from publishers across the globe.</p>
+            <p class="text-muted">Last updated: {{ last_updated }}</p>
+            
+            {% if articles %}
+                <div class="row mt-4">
+                    {% for article in articles %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                {% if article.urlToImage %}
+                                    <img src="{{ article.urlToImage }}" class="card-img-top lazy-load" alt="{{ article.title }}" 
+                                        loading="lazy" onerror="this.onerror=null; this.src='/static/img/news-placeholder.png';">
+                                {% else %}
+                                    <img src="/static/img/news-placeholder.png" class="card-img-top" alt="No image available">
+                                {% endif %}
+                                
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ article.title }}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        {% if article.source and article.source.name %}
+                                            {{ article.source.name }}
+                                        {% else %}
+                                            Unknown Source
+                                        {% endif %}
+                                        {% if article.published_time %}
+                                            - {{ article.published_time }}
+                                        {% endif %}
+                                    </h6>
+                                    <p class="card-text">{{ article.description }}</p>
+                                </div>
+                                <div class="card-footer bg-transparent border-top-0">
+                                    <a href="{{ url_for('article_detail', article_url=article.url) }}" class="btn btn-primary">Read More</a>
+                                    <button class="btn btn-outline-secondary share-btn float-end" 
+                                            data-title="{{ article.title }}" 
+                                            data-url="{{ article.url }}">
+                                        <i class="bi bi-share"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info mt-4">
+                    <p>No articles found. Please try again later.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

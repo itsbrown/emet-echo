@@ -239,3 +239,69 @@ def format_timestamp(timestamp_str):
         return dt.strftime("%B %d, %Y")
     except:
         return timestamp_str
+
+def fetch_trump_positive_news(page_size=50):
+    """
+    Fetch positive news about Trump from around the world
+    
+    Args:
+        page_size: Number of articles to fetch (default: 50)
+        
+    Returns:
+        List of positive Trump news articles
+    """
+    logger.info("Fetching positive Trump news from around the world")
+    
+    try:
+        # Use the "everything" endpoint with carefully crafted query
+        url = f"{NEWS_API_URL}/everything"
+        
+        # Positive sentiment keywords combined with Trump
+        positive_keywords = ["success", "victory", "winning", "achievement", "praised", 
+                            "support", "approval", "popular", "gain", "rise", "momentum",
+                            "leadership", "breakthrough", "accomplishment", "strength", 
+                            "resilience", "comeback", "triumph", "champion", "excellence"]
+        
+        # Combine positive keywords with Trump in the query
+        query_parts = [f"Trump AND {keyword}" for keyword in positive_keywords]
+        query = " OR ".join(query_parts)
+        
+        # We want worldwide news, so we don't restrict by domains
+        params = {
+            "q": query,
+            "language": "en",
+            "pageSize": page_size,
+            "sortBy": "publishedAt",
+            "apiKey": NEWS_API_KEY
+        }
+        
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        articles = data.get("articles", [])
+        logger.info(f"Found {len(articles)} positive Trump articles from around the world")
+        
+        # Enhance articles with additional content
+        enhanced_articles = []
+        for article in articles:
+            try:
+                # Add article source URL for scraping
+                if article.get('url'):
+                    article['content'] = fetch_article_content(article['url'])
+                
+                # Add timestamp for display
+                if article.get('publishedAt'):
+                    article['published_time'] = format_timestamp(article['publishedAt'])
+                
+                enhanced_articles.append(article)
+            except Exception as e:
+                logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
+                # Still keep the article even if enhancement fails
+                enhanced_articles.append(article)
+        
+        return enhanced_articles
+    
+    except requests.RequestException as e:
+        logger.error(f"Error fetching Trump positive news: {str(e)}")
+        raise Exception(f"Error fetching Trump positive news: {str(e)}")

@@ -426,6 +426,116 @@ def article_detail(article_url):
     
     return render_template('article.html', article=article)
 
+@app.route('/trump')
+def trump_news():
+    """Display positive Trump news from around the world"""
+    try:
+        from models import Article
+        from news_scraper import fetch_trump_positive_news
+        
+        # Check if we have Trump articles in the database first
+        trump_articles = Article.query.filter(
+            db.or_(
+                Article.title.ilike('%trump%'),
+                Article.description.ilike('%trump%')
+            ),
+            # Look for positive sentiment in title or description
+            db.or_(
+                Article.title.ilike('%success%'),
+                Article.title.ilike('%victory%'),
+                Article.title.ilike('%winning%'),
+                Article.title.ilike('%praised%'),
+                Article.title.ilike('%support%'),
+                Article.description.ilike('%success%'),
+                Article.description.ilike('%victory%'),
+                Article.description.ilike('%winning%'),
+                Article.description.ilike('%praised%'),
+                Article.description.ilike('%support%')
+            )
+        ).order_by(Article.published_at.desc()).limit(50).all()
+        
+        # If we don't have enough Trump articles in the database, fetch from API
+        if len(trump_articles) < 10:
+            # Fetch new Trump articles from API
+            api_articles = fetch_trump_positive_news()
+            
+            # Process and store these articles in the database
+            for article_data in api_articles:
+                # Skip if no URL or if article already exists
+                if not article_data.get('url'):
+                    continue
+                
+                # Check if article with same URL already exists in database
+                existing_article = Article.query.filter_by(url=article_data.get('url', '')).first()
+                
+                if not existing_article:
+                    # Create new article in database
+                    new_article = Article(
+                        title=article_data.get('title', 'No Title'),
+                        url=article_data.get('url', ''),
+                        source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
+                        source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
+                        published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
+                        author=article_data.get('author', ''),
+                        description=article_data.get('description', ''),
+                        content=article_data.get('content', ''),
+                        url_to_image=article_data.get('urlToImage', ''),
+                        category='trump',  # Special category for Trump news
+                        source_type='world'  # These are from worldwide sources
+                    )
+                    
+                    # Generate summary if content is available
+                    if article_data.get('content'):
+                        try:
+                            from summarizer import generate_summary
+                            new_article.summary = generate_summary(article_data.get('content'))
+                        except Exception as sum_err:
+                            logger.error(f"Error generating summary: {str(sum_err)}")
+                            new_article.summary = "Summary not available."
+                    
+                    # Add to database
+                    db.session.add(new_article)
+            
+            # Commit all database changes
+            db.session.commit()
+            
+            # Refresh the list of Trump articles from the database
+            trump_articles = Article.query.filter(
+                db.or_(
+                    Article.title.ilike('%trump%'),
+                    Article.description.ilike('%trump%')
+                )
+            ).order_by(Article.published_at.desc()).limit(50).all()
+        
+        # Convert DB articles to dictionary format for template
+        articles = []
+        for article in trump_articles:
+            article_dict = {
+                'title': article.title,
+                'url': article.url,
+                'source': {'name': article.source_name},
+                'publishedAt': article.published_at.isoformat() if article.published_at else '',
+                'author': article.author,
+                'description': article.description,
+                'content': article.content,
+                'summary': article.summary,
+                'urlToImage': article.url_to_image,
+                'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
+                'source_type': article.source_type
+            }
+            articles.append(article_dict)
+        
+        # Get last updated time
+        last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        return render_template('trump.html', 
+                              articles=articles, 
+                              last_updated=last_updated)
+    except Exception as e:
+        logger.error(f"Error displaying Trump news: {str(e)}")
+        flash(f"Error loading Trump news: {str(e)}", "danger")
+        return redirect(url_for('index'))
+
 @app.route('/refresh')
 def refresh_trending():
     """Manually refresh trending news"""
