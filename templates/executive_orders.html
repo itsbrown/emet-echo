@@ -82,12 +82,22 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary view-details" data-bs-toggle="modal" data-bs-target="#orderModal" 
-                                                data-order-id="{{ order.id }}" data-order-title="{{ order.title }}" 
-                                                data-order-number="{{ order.order_number }}" data-order-date="{{ order.date_issued.strftime('%b %d, %Y') }}"
-                                                data-order-summary="{{ order.summary|e }}" data-order-url="{{ order.url|e }}"
-                                                data-order-status="{{ order.status|e }}" data-order-category="{{ order.category|e }}"
-                                                data-order-source="{{ order.source|e }}" data-order-full-text="{{ order.full_text|e }}">
+                                        <button class="btn btn-sm btn-primary view-details" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#orderModal" 
+                                                data-order-number="{{ order.order_number }}"
+                                                data-order-json='{{ {
+                                                    "id": order.id,
+                                                    "title": order.title,
+                                                    "order_number": order.order_number,
+                                                    "date": order.date_issued.strftime("%b %d, %Y"),
+                                                    "status": order.status,
+                                                    "category": order.category,
+                                                    "source": order.source,
+                                                    "url": order.url,
+                                                    "summary": order.summary,
+                                                    "full_text": order.full_text
+                                                }|tojson }}'>
                                             View Details
                                         </button>
                                     </td>
@@ -237,25 +247,37 @@
             orderModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 
-                // Helper function to decode HTML entities
-                function decodeHTMLEntities(text) {
-                    if (!text) return '';
-                    
-                    const textArea = document.createElement('textarea');
-                    textArea.innerHTML = text;
-                    return textArea.value;
+                // Get JSON data from the button attribute
+                const orderNumber = button.getAttribute('data-order-number');
+                let orderData;
+                
+                try {
+                    orderData = JSON.parse(button.getAttribute('data-order-json'));
+                    console.log("Parsed order data:", orderData);
+                } catch (e) {
+                    console.error("Error parsing JSON data:", e);
+                    orderData = {
+                        title: 'Error loading data',
+                        order_number: orderNumber || 'N/A',
+                        date: 'N/A',
+                        status: 'Unknown',
+                        category: 'Uncategorized',
+                        source: 'Unknown Source',
+                        url: '',
+                        summary: 'There was an error loading the executive order data. Please try again later.',
+                        full_text: ''
+                    };
                 }
                 
-                // Extract data and decode HTML entities
-                const title = decodeHTMLEntities(button.getAttribute('data-order-title'));
-                const orderNumber = decodeHTMLEntities(button.getAttribute('data-order-number'));
-                const date = decodeHTMLEntities(button.getAttribute('data-order-date'));
-                const summary = decodeHTMLEntities(button.getAttribute('data-order-summary'));
-                const url = decodeHTMLEntities(button.getAttribute('data-order-url'));
-                const status = decodeHTMLEntities(button.getAttribute('data-order-status'));
-                const category = decodeHTMLEntities(button.getAttribute('data-order-category'));
-                const source = decodeHTMLEntities(button.getAttribute('data-order-source'));
-                const fullText = decodeHTMLEntities(button.getAttribute('data-order-full-text'));
+                // Extract values from the parsed JSON object
+                const title = orderData.title || 'No Title Available';
+                const date = orderData.date || 'N/A';
+                const summary = orderData.summary || '';
+                const url = orderData.url || '';
+                const status = orderData.status || 'Unknown';
+                const category = orderData.category || 'Uncategorized';
+                const source = orderData.source || 'Unknown Source';
+                const fullText = orderData.full_text || '';
                 
                 // Update modal content
                 document.getElementById('modal-title').textContent = title || 'No Title Available';
