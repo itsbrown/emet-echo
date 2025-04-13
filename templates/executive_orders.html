@@ -83,18 +83,17 @@
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-primary view-details" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#orderModal" 
-                                                data-order-id="{{ order.id }}"
-                                                data-order-title="{{ order.title }}"
-                                                data-order-number="{{ order.order_number }}"
-                                                data-order-date="{{ order.date_issued.strftime('%b %d, %Y') }}"
-                                                data-order-status="{{ order.status }}"
-                                                data-order-category="{{ order.category }}"
-                                                data-order-source="{{ order.source }}"
-                                                data-order-url="{{ order.url }}"
-                                                data-order-summary="{{ order.summary }}"
-                                                data-order-full-text="{{ order.full_text }}">
+                                                onclick="openOrderDetails(
+                                                    '{{ order.title|e }}', 
+                                                    '{{ order.order_number|e }}', 
+                                                    '{{ order.date_issued.strftime('%b %d, %Y')|e }}',
+                                                    '{{ order.status|e }}',
+                                                    '{{ order.category|e }}',
+                                                    '{{ order.source|e }}',
+                                                    '{{ order.url|e }}',
+                                                    {{ order.summary|tojson }},
+                                                    {{ order.full_text|tojson }}
+                                                )">
                                             View Details
                                         </button>
                                     </td>
@@ -237,122 +236,94 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle modal detail view
-        const orderModal = document.getElementById('orderModal');
-        if (orderModal) {
-            orderModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                
-                // Debug the button element
-                console.log("Button (event.relatedTarget):", button);
-                
-                // Try to parse any JSON data that might be present (even if we're not using it currently)
-                try {
-                    console.log("JSON parsing attempt:", JSON.parse(button.getAttribute('data-order-json')));
-                } catch (e) {
-                    console.log("JSON parse error:", e);
-                }
-                
-                // Helper function to safely get attribute
-                function getDataAttribute(element, attributeName, defaultValue = '') {
-                    const value = element.getAttribute(attributeName);
-                    return (value !== null && value !== undefined && value !== '') ? value : defaultValue;
-                }
-                
-                // Get data directly from attributes
-                const title = getDataAttribute(button, 'data-order-title', 'No Title Available');
-                const orderNumber = getDataAttribute(button, 'data-order-number', 'N/A');
-                const date = getDataAttribute(button, 'data-order-date', 'N/A');
-                const summary = getDataAttribute(button, 'data-order-summary', '');
-                const url = getDataAttribute(button, 'data-order-url', '');
-                const status = getDataAttribute(button, 'data-order-status', 'Unknown');
-                const category = getDataAttribute(button, 'data-order-category', 'Uncategorized');
-                const source = getDataAttribute(button, 'data-order-source', 'Unknown Source');
-                const fullText = getDataAttribute(button, 'data-order-full-text', '');
-                
-                // Debug output
-                console.log("Order details:");
-                console.log("Title:", title);
-                console.log("Summary:", summary);
-                console.log("Full text:", fullText);
-                
-                // Update modal content
-                document.getElementById('modal-title').textContent = title || 'No Title Available';
-                document.getElementById('modal-order-number').textContent = orderNumber || 'N/A';
-                document.getElementById('modal-date').textContent = date || 'N/A';
-                document.getElementById('modal-status').textContent = status || 'Unknown';
-                document.getElementById('modal-category').textContent = category || 'Uncategorized';
-                document.getElementById('modal-source').textContent = source || 'Unknown Source';
-                
-                // Set summary with proper handling
-                const modalSummary = document.getElementById('modal-summary');
-                if (summary && summary.trim().length > 0) {
-                    modalSummary.textContent = summary;
-                    modalSummary.classList.remove('text-muted');
-                } else {
-                    modalSummary.textContent = 'No summary available for this executive order.';
-                    modalSummary.classList.add('text-muted');
-                }
-                
-                // Set full text with proper handling
-                const modalFullText = document.getElementById('modal-full-text');
-                if (fullText && fullText.trim().length > 0) {
-                    modalFullText.textContent = fullText;
-                    document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.remove('disabled');
-                } else {
-                    modalFullText.textContent = 'Full text of this executive order is not available.';
-                    modalFullText.classList.add('text-muted');
-                    document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.add('disabled');
-                }
-                
-                // Extract and display key points
-                const keyPointsList = document.getElementById('modal-key-points');
-                keyPointsList.innerHTML = ''; // Clear previous points
-                
-                if (summary) {
-                    // Split on periods followed by spaces, or on periods at the end of the string
-                    const sentences = summary.split(/(?<=\.)\s+|(?<=\.)$/);
-                    const keyPoints = sentences.slice(0, Math.min(5, sentences.length));
-                    
-                    keyPoints.forEach(point => {
-                        if (point && point.trim().length > 10) { // Ensure point has meaningful content
-                            const li = document.createElement('li');
-                            li.className = 'list-group-item';
-                            li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${point.trim()}`;
-                            keyPointsList.appendChild(li);
-                        }
-                    });
-                    
-                    // If no key points were extracted, add a fallback point
-                    if (keyPointsList.children.length === 0 && summary.trim().length > 0) {
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item';
-                        li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${summary.trim()}`;
-                        keyPointsList.appendChild(li);
-                    }
-                } else {
+    // Function to open order modal with details
+    function openOrderDetails(title, orderNumber, date, status, category, source, url, summary, fullText) {
+        console.log("Opening order details with:", {
+            title, orderNumber, date, status, category, source, url,
+            summaryLength: summary ? summary.length : 0,
+            fullTextLength: fullText ? fullText.length : 0
+        });
+        
+        // Open the modal
+        const modal = new bootstrap.Modal(document.getElementById('orderModal'));
+        
+        // Update modal content
+        document.getElementById('modal-title').textContent = title || 'No Title Available';
+        document.getElementById('modal-order-number').textContent = orderNumber || 'N/A';
+        document.getElementById('modal-date').textContent = date || 'N/A';
+        document.getElementById('modal-status').textContent = status || 'Unknown';
+        document.getElementById('modal-category').textContent = category || 'Uncategorized';
+        document.getElementById('modal-source').textContent = source || 'Unknown Source';
+        
+        // Set summary with proper handling
+        const modalSummary = document.getElementById('modal-summary');
+        if (summary && summary.length > 0) {
+            modalSummary.textContent = summary;
+            modalSummary.classList.remove('text-muted');
+        } else {
+            modalSummary.textContent = 'No summary available for this executive order.';
+            modalSummary.classList.add('text-muted');
+        }
+        
+        // Set full text with proper handling
+        const modalFullText = document.getElementById('modal-full-text');
+        if (fullText && fullText.length > 0) {
+            modalFullText.textContent = fullText;
+            document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.remove('disabled');
+        } else {
+            modalFullText.textContent = 'Full text of this executive order is not available.';
+            modalFullText.classList.add('text-muted');
+            document.querySelector('[data-bs-target="#fullTextCollapse"]').classList.add('disabled');
+        }
+        
+        // Extract and display key points
+        const keyPointsList = document.getElementById('modal-key-points');
+        keyPointsList.innerHTML = ''; // Clear previous points
+        
+        if (summary) {
+            // Split on periods followed by spaces, or on periods at the end of the string
+            const sentences = summary.split(/(?<=\.)\s+|(?<=\.)$/);
+            const keyPoints = sentences.slice(0, Math.min(5, sentences.length));
+            
+            keyPoints.forEach(point => {
+                if (point && point.trim().length > 10) { // Ensure point has meaningful content
                     const li = document.createElement('li');
-                    li.className = 'list-group-item text-muted';
-                    li.innerHTML = 'No key points available';
+                    li.className = 'list-group-item';
+                    li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${point.trim()}`;
                     keyPointsList.appendChild(li);
                 }
-                
-                // Update links
-                const officialLink = document.getElementById('modal-official-link');
-                if (url && url !== 'None' && url !== '') {
-                    officialLink.href = url;
-                    officialLink.style.display = 'inline-block';
-                } else {
-                    officialLink.style.display = 'none';
-                }
-                
-                // Update share button
-                const shareBtn = document.querySelector('.share-btn');
-                shareBtn.setAttribute('data-url', window.location.origin + '/executive-orders?order=' + orderNumber);
-                shareBtn.setAttribute('data-title', 'Trump Executive Order: ' + title);
             });
+            
+            // If no key points were extracted, add a fallback point
+            if (keyPointsList.children.length === 0 && summary.length > 0) {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.innerHTML = `<i class="bi bi-check-circle-fill text-primary me-2"></i> ${summary.trim()}`;
+                keyPointsList.appendChild(li);
+            }
+        } else {
+            const li = document.createElement('li');
+            li.className = 'list-group-item text-muted';
+            li.innerHTML = 'No key points available';
+            keyPointsList.appendChild(li);
         }
-    });
+        
+        // Update links
+        const officialLink = document.getElementById('modal-official-link');
+        if (url && url !== 'None' && url !== '') {
+            officialLink.href = url;
+            officialLink.style.display = 'inline-block';
+        } else {
+            officialLink.style.display = 'none';
+        }
+        
+        // Update share button
+        const shareBtn = document.querySelector('.share-btn');
+        shareBtn.setAttribute('data-url', window.location.origin + '/executive-orders?order=' + orderNumber);
+        shareBtn.setAttribute('data-title', 'Trump Executive Order: ' + title);
+        
+        // Show the modal
+        modal.show();
+    }
 </script>
 {% endblock %}
