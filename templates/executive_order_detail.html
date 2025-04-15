@@ -90,7 +90,7 @@
             <h5 class="mb-0"><i class="bi bi-robot me-2"></i> AI-Generated Summary</h5>
         </div>
         <div class="card-body">
-            <div class="p-3 bg-light rounded">
+            <div class="p-3 bg-dark rounded text-white">
                 {% if order.summary %}
                 <p class="lead mb-0">{{ order.summary }}</p>
                 {% else %}
@@ -136,11 +136,11 @@
         <div class="collapse" id="fullTextCollapse">
             <div class="card-body">
                 {% if order.full_text %}
-                <div class="p-3 border rounded bg-light" style="white-space: pre-line; max-height: 400px; overflow-y: auto;">
+                <div class="p-3 border rounded bg-dark text-white" style="white-space: pre-line; max-height: 400px; overflow-y: auto;">
                     {{ order.full_text }}
                 </div>
                 {% else %}
-                <div class="p-3 border rounded bg-light text-muted">
+                <div class="p-3 border rounded bg-dark text-muted">
                     Full text of this executive order is not available.
                 </div>
                 {% endif %}
