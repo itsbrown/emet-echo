@@ -35,6 +35,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Initialize the app with the extension
 db.init_app(app)
 
+# Register blueprints
+from blueprints.email import email_bp, init_app as init_email_blueprint
+
+# Register the email blueprint
+app.register_blueprint(email_bp)
+
+# Initialize the email blueprint with app context
+with app.app_context():
+    init_email_blueprint(app, db)
+
 # Ensure user has a session ID
 def get_or_create_user_id():
     if 'user_id' not in session:

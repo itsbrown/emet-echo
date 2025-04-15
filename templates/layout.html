@@ -84,6 +84,11 @@
                             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-success" href="{{ email_routes.subscribe if email_routes is defined else url_for('email.subscribe') }}">
+                            <i class="bi bi-envelope me-1"></i> Newsletter
+                        </a>
+                    </li>
                     <li class="nav-item d-lg-none">
                         <a class="nav-link text-warning fw-bold" href="/executive-orders">
                             <i class="bi bi-arrow-right me-1"></i> GO TO EXECUTIVE ORDERS
