@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Your Email Preferences{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark text-light border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h2 class="mb-0">Manage Your Email Preferences</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Customize your daily news digest to receive only the content that matters to you.</p>
+                    
+                    <form action="{{ url_for('email.manage_preferences', token=subscriber.confirmation_token) }}" method="post" class="mt-4">
+                        <div class="mb-4">
+                            <h5>Email Frequency</h5>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="frequency" id="daily" value="daily" 
+                                    {% if subscriber.frequency == 'daily' %}checked{% endif %}>
+                                <label class="form-check-label" for="daily">
+                                    Daily Digest
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="frequency" id="weekly" value="weekly"
+                                    {% if subscriber.frequency == 'weekly' %}checked{% endif %}>
+                                <label class="form-check-label" for="weekly">
+                                    Weekly Digest
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>News Categories</h5>
+                            <p class="text-muted small">Select the categories you're interested in</p>
+                            
+                            <div class="row">
+                                {% set preferred_categories = subscriber.get_preferred_categories() %}
+                                {% for category in available_categories %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="categories" 
+                                            id="category-{{ category }}" value="{{ category }}"
+                                            {% if category in preferred_categories %}checked{% endif %}>
+                                        <label class="form-check-label" for="category-{{ category }}">
+                                            {{ category|capitalize }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Preferred News Sources</h5>
+                            <p class="text-muted small">Select your preferred sources (leave empty to include all except excluded)</p>
+                            
+                            <div class="row">
+                                {% set preferred_sources = subscriber.get_preferred_sources() %}
+                                {% for source in available_sources %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sources" 
+                                            id="source-{{ source|replace(' ', '-') }}" value="{{ source }}"
+                                            {% if source in preferred_sources %}checked{% endif %}>
+                                        <label class="form-check-label" for="source-{{ source|replace(' ', '-') }}">
+                                            {{ source }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Excluded News Sources</h5>
+                            <p class="text-muted small">Select sources you want to exclude</p>
+                            
+                            <div class="row">
+                                {% set excluded_sources = subscriber.get_excluded_sources() %}
+                                {% for source in available_sources %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="excluded_sources" 
+                                            id="excluded-{{ source|replace(' ', '-') }}" value="{{ source }}"
+                                            {% if source in excluded_sources %}checked{% endif %}>
+                                        <label class="form-check-label" for="excluded-{{ source|replace(' ', '-') }}">
+                                            {{ source }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                            <a href="{{ url_for('email.unsubscribe', token=subscriber.confirmation_token) }}" 
+                               class="btn btn-outline-danger" 
+                               onclick="return confirm('Are you sure you want to unsubscribe?')">
+                                Unsubscribe
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

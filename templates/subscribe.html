@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}Subscribe to Daily Conservative News Digest{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark text-light border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h2 class="mb-0">Subscribe to Daily News Digest</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Stay informed with the latest trusted conservative news delivered straight to your inbox.</p>
+                    
+                    <form action="{{ url_for('email.subscribe') }}" method="post" class="mt-4">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control bg-dark text-light border-secondary" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="first_name" name="first_name">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="last_name" name="last_name">
+                        </div>
+                        
+                        <div class="form-text text-muted mb-4">
+                            We respect your privacy. You can unsubscribe at any time and manage your preferences to receive only news that matters to you.
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Subscribe Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Conservative News Digest for {{ date }}</title>
+    <title>Conservative News Digest - {{ date }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,25 +13,16 @@
             margin: 0 auto;
             padding: 20px;
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo h1 {
-            color: #14213d;
-            margin: 0;
-        }
         .header {
-            background-color: #14213d;
+            background-color: #003366;
             color: white;
-            padding: 15px;
-            border-radius: 5px 5px 0 0;
-            text-align: center;
-        }
-        .container {
-            background-color: #f9f9f9;
-            border-radius: 0 0 5px 5px;
             padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            background-color: #f9f9f9;
             border: 1px solid #ddd;
             border-top: none;
         }
@@ -43,92 +34,92 @@
         .article:last-child {
             border-bottom: none;
         }
-        .article h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
+        .article-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #003366;
         }
-        .article-meta {
-            font-size: 12px;
+        .article-source {
+            font-size: 14px;
             color: #666;
             margin-bottom: 10px;
         }
         .article-image {
-            max-width: 100%;
-            height: auto;
-            margin-bottom: 15px;
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            margin-bottom: 10px;
             border-radius: 5px;
         }
-        .read-more {
+        .article-description {
+            margin-bottom: 10px;
+        }
+        .article-link {
             display: inline-block;
-            background-color: #336699;
+            background-color: #003366;
             color: white;
             text-decoration: none;
-            padding: 7px 15px;
+            padding: 5px 15px;
             border-radius: 3px;
             font-size: 14px;
         }
         .footer {
-            margin-top: 30px;
+            text-align: center;
             font-size: 12px;
             color: #666;
-            text-align: center;
+            margin-top: 20px;
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 0 0 5px 5px;
         }
         .footer a {
-            color: #336699;
+            color: #003366;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
-    <div class="logo">
-        <h1>Conservative News Digest</h1>
-    </div>
-    
     <div class="header">
-        <h2>Your News Digest for {{ date }}</h2>
+        <h1>Conservative News Digest</h1>
+        <p>{{ date }}</p>
     </div>
     
-    <div class="container">
+    <div class="content">
         <p>Hello {% if first_name %}{{ first_name }}{% else %}there{% endif %},</p>
         
-        <p>Here's your personalized news digest featuring the latest stories from trusted sources:</p>
+        <p>Here's your personalized digest of today's most important conservative news stories:</p>
         
         {% for article in articles %}
         <div class="article">
-            <h3>{{ article.title }}</h3>
-            <div class="article-meta">
-                <span>{{ article.source_name }}</span>
-                {% if article.published_at %}
-                <span> • {{ article.published_at.strftime('%B %d, %Y') }}</span>
-                {% endif %}
-                {% if article.author %}
-                <span> • {{ article.author }}</span>
+            <div class="article-title">{{ article.title }}</div>
+            <div class="article-source">{{ article.source_name }} • {{ article.published_at.strftime('%B %d, %Y') }}</div>
+            
+            {% if article.url_to_image %}
+            <img src="{{ article.url_to_image }}" alt="Article image" class="article-image">
+            {% endif %}
+            
+            <div class="article-description">
+                {% if article.summary %}
+                    {{ article.summary|truncate(200) }}
+                {% else %}
+                    {{ article.description|truncate(200) }}
                 {% endif %}
             </div>
             
-            {% if article.url_to_image %}
-            <img src="{{ article.url_to_image }}" alt="{{ article.title }}" class="article-image">
-            {% endif %}
-            
-            {% if article.description %}
-            <p>{{ article.description }}</p>
-            {% endif %}
-            
-            <a href="{{ article.url }}" class="read-more">Read Full Article</a>
+            <a href="{{ article.url }}" class="article-link">Read Full Article</a>
         </div>
         {% endfor %}
         
-        <p style="text-align: center; margin-top: 20px;">
-            <a href="https://yourwebsite.com" style="color: #336699;">View more news stories on our website</a>
-        </p>
+        <p>This digest is personalized based on your preferences. Visit our website for more trusted conservative news.</p>
     </div>
     
     <div class="footer">
-        <p>&copy; {% now 'utc', '%Y' %} Conservative News Digest. All rights reserved.</p>
+        <p>Conservative News Digest | Trusted Sources. Real News.</p>
+        <p>This email was sent to you because you subscribed to our newsletter.</p>
         <p>
-            You received this email because you subscribed to our daily news digest.
-            <br>
-            <a href="{{ url_for('unsubscribe', token=token, _external=True) }}">Unsubscribe</a> | 
-            <a href="{{ url_for('manage_preferences', token=token, _external=True) }}">Manage Preferences</a>
+            <a href="{{ preferences_url }}">Manage Preferences</a> | 
+            <a href="{{ unsubscribe_url }}">Unsubscribe</a>
         </p>
     </div>
 </body>
