@@ -6,9 +6,12 @@ from datetime import datetime
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Email digest settings
+DIGEST_HOUR = 8  # Send at 8 AM local server time
+
 def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds)
     """
-    Start a background scheduler to refresh news data
+    Start a background scheduler to refresh news data and send daily digests
     
     Args:
         news_data: Reference to the global news data dictionary
@@ -19,7 +22,9 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
         from summarizer import generate_summary
         # Get Flask app to use app_context
         from app import app, db
-        from models import Article
+        from models import Article, EmailSubscriber
+        # Import email service
+        from email_service import send_all_daily_digests
         
         while True:
             try:
@@ -27,6 +32,16 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
                 
                 # Make sure all database operations use an app context
                 with app.app_context():
+                    # Check if it's time to send daily digest emails (at DIGEST_HOUR o'clock)
+                    current_time = datetime.now()
+                    if current_time.hour == DIGEST_HOUR and current_time.minute < 15:
+                        logger.info("Sending daily digest emails to subscribers")
+                        try:
+                            successful, failed = send_all_daily_digests()
+                            logger.info(f"Daily digest emails sent: {successful} successful, {failed} failed")
+                        except Exception as email_err:
+                            logger.error(f"Error sending daily digest emails: {str(email_err)}")
+                    
                     # Fetch new trending articles
                     articles = fetch_news()
                     stored_articles = []

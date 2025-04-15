@@ -4,8 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content, TemplateId, Personalization
-from flask import url_for, render_template
-from models import EmailSubscriber, Article, db
+from flask import url_for, render_template, current_app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,12 +14,132 @@ logger = logging.getLogger(__name__)
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = 'news@trustedconservative.news'  # Replace with your sending domain
 
-def send_confirmation_email(subscriber):
+def init_app(app, db):
+    """Initialize email service with app context"""
+    
+    # Register routes for subscription management
+    @app.route('/subscribe', methods=['GET', 'POST'])
+    def subscribe():
+        """Subscription form and processing"""
+        from flask import request, redirect, flash, session
+        from models import EmailSubscriber
+        
+        if request.method == 'POST':
+            email = request.form.get('email')
+            first_name = request.form.get('first_name', '')
+            last_name = request.form.get('last_name', '')
+            
+            if not email:
+                flash('Email is required', 'danger')
+                return redirect(url_for('subscribe'))
+                
+            # Check if already subscribed
+            existing = EmailSubscriber.query.filter_by(email=email).first()
+            if existing:
+                if existing.confirmed_at:
+                    flash('You are already subscribed to our newsletter', 'info')
+                else:
+                    # Resend confirmation email
+                    send_confirmation_email(existing, db)
+                    flash('Confirmation email resent. Please check your inbox', 'info')
+                return redirect(url_for('index'))
+            
+            # Create new subscriber
+            new_subscriber = EmailSubscriber(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                confirmation_token=str(uuid.uuid4())
+            )
+            
+            # Save to database
+            db.session.add(new_subscriber)
+            db.session.commit()
+            
+            # Send confirmation email
+            if send_confirmation_email(new_subscriber, db):
+                flash('Please check your email to confirm your subscription', 'success')
+            else:
+                flash('There was an error sending the confirmation email. Please try again later.', 'danger')
+                
+            return redirect(url_for('index'))
+            
+        # GET request - show form
+        return render_template('subscribe.html')
+    
+    @app.route('/confirm/<token>')
+    def confirm_subscription(token):
+        """Confirm email subscription with token"""
+        from flask import flash, redirect
+        from models import EmailSubscriber
+        
+        subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
+        
+        if not subscriber:
+            flash('Invalid confirmation link', 'danger')
+            return redirect(url_for('index'))
+            
+        subscriber.confirmed_at = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Your subscription has been confirmed. Thank you!', 'success')
+        return redirect(url_for('index'))
+    
+    @app.route('/unsubscribe/<token>')
+    def unsubscribe(token):
+        """Unsubscribe from newsletter"""
+        from flask import flash, redirect
+        from models import EmailSubscriber
+        
+        subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
+        
+        if not subscriber:
+            flash('Invalid unsubscribe link', 'danger')
+            return redirect(url_for('index'))
+            
+        subscriber.is_active = False
+        db.session.commit()
+        
+        flash('You have been unsubscribed from our newsletter', 'success')
+        return redirect(url_for('index'))
+    
+    @app.route('/manage-preferences/<token>')
+    def manage_preferences(token):
+        """Manage email preferences"""
+        from flask import request, flash, redirect
+        from models import EmailSubscriber
+        
+        subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
+        
+        if not subscriber:
+            flash('Invalid link', 'danger')
+            return redirect(url_for('index'))
+            
+        if request.method == 'POST':
+            # Update preferences
+            categories = request.form.getlist('categories')
+            sources = request.form.getlist('sources')
+            excluded = request.form.getlist('excluded_sources')
+            
+            subscriber.set_preferred_categories(categories)
+            subscriber.set_preferred_sources(sources)
+            subscriber.set_excluded_sources(excluded)
+            
+            db.session.commit()
+            
+            flash('Your preferences have been updated', 'success')
+            return redirect(url_for('index'))
+            
+        # GET request - show form
+        return render_template('preferences.html', subscriber=subscriber)
+
+def send_confirmation_email(subscriber, db):
     """
     Send confirmation email to new subscribers
     
     Args:
         subscriber: EmailSubscriber model instance
+        db: SQLAlchemy database instance
     
     Returns:
         bool: True if successful, False otherwise
@@ -185,6 +304,8 @@ def get_personalized_articles(subscriber, limit=10):
     Returns:
         list: List of Article objects
     """
+    from models import Article
+    
     # Get subscriber preferences
     preferred_categories = subscriber.get_preferred_categories()
     preferred_sources = subscriber.get_preferred_sources()

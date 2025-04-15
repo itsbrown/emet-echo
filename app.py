@@ -11,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
+from email_service import send_confirmation_email
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
