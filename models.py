@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 # Import db from separate file to avoid circular imports
 from app import db
@@ -52,3 +53,57 @@ class ExecutiveOrder(db.Model):
     source = db.Column(db.String(300))  # Source of the executive order data
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+class EmailSubscriber(db.Model):
+    """Model for storing email newsletter subscribers"""
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    first_name = db.Column(db.String(100))
+    last_name = db.Column(db.String(100))
+    
+    # Preferences (stored as JSON strings)
+    preferred_categories = db.Column(db.Text, default='[]')  # JSON string of categories 
+    preferred_sources = db.Column(db.Text, default='[]')     # JSON string of sources
+    excluded_sources = db.Column(db.Text, default='[]')      # JSON string of excluded sources
+    
+    # Email frequency
+    frequency = db.Column(db.String(20), default='daily')    # 'daily', 'weekly', etc.
+    
+    # Tracking fields
+    is_active = db.Column(db.Boolean, default=True)          # For opt-out/unsubscribe
+    confirmation_token = db.Column(db.String(100))           # For double opt-in confirmation
+    confirmed_at = db.Column(db.DateTime)                    # When user confirmed subscription
+    last_email_sent = db.Column(db.DateTime)                 # When the last email was sent
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def get_preferred_categories(self):
+        """Get preferred categories as a list"""
+        if not self.preferred_categories:
+            return []
+        return json.loads(self.preferred_categories)
+    
+    def get_preferred_sources(self):
+        """Get preferred sources as a list"""
+        if not self.preferred_sources:
+            return []
+        return json.loads(self.preferred_sources)
+    
+    def get_excluded_sources(self):
+        """Get excluded sources as a list"""
+        if not self.excluded_sources:
+            return []
+        return json.loads(self.excluded_sources)
+    
+    def set_preferred_categories(self, categories):
+        """Set preferred categories from a list"""
+        self.preferred_categories = json.dumps(categories)
+    
+    def set_preferred_sources(self, sources):
+        """Set preferred sources from a list"""
+        self.preferred_sources = json.dumps(sources)
+    
+    def set_excluded_sources(self, sources):
+        """Set excluded sources from a list"""
+        self.excluded_sources = json.dumps(sources)

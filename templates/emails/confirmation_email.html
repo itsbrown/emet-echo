@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Your Conservative News Digest Subscription</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo h1 {
+            color: #14213d;
+            margin: 0;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+        .button {
+            display: inline-block;
+            background-color: #336699;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <h1>Conservative News Digest</h1>
+    </div>
+    
+    <div class="container">
+        <h2>Hello {% if first_name %}{{ first_name }}{% else %}there{% endif %},</h2>
+        
+        <p>Thank you for subscribing to the <strong>Conservative News Digest!</strong></p>
+        
+        <p>We're excited to have you join our community of readers who value accurate, trustworthy news from conservative and independent sources.</p>
+        
+        <p>To complete your subscription and start receiving your personalized news digest, please confirm your email address by clicking the button below:</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ confirmation_url }}" class="button">Confirm Subscription</a>
+        </div>
+        
+        <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p style="word-break: break-all;">{{ confirmation_url }}</p>
+        
+        <p>If you did not sign up for this service, you can safely ignore this email.</p>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; {% now 'utc', '%Y' %} Conservative News Digest. All rights reserved.</p>
+        <p>To unsubscribe or manage your preferences, click <a href="#">here</a>.</p>
+    </div>
+</body>
+</html>
