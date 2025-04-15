@@ -22,9 +22,9 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
         from summarizer import generate_summary
         # Get Flask app to use app_context
         from app import app, db
-        from models import Article, EmailSubscriber
-        # Import email service
-        from email_service import send_all_daily_digests
+        from models import Article
+        # Import email blueprint digest function
+        from blueprints.email import send_all_daily_digests
         
         while True:
             try:

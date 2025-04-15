@@ -11,7 +11,6 @@ from sqlalchemy.orm import DeclarativeBase
 from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
-from email_service import send_confirmation_email
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -556,3 +555,5 @@ def page_not_found(e):
 @app.errorhandler(500)
 def server_error(e):
     return render_template('error.html', error="Server error occurred"), 500
+
+

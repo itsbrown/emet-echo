@@ -13,6 +13,17 @@ logger = logging.getLogger(__name__)
 # Create Blueprint
 email_bp = Blueprint('email', __name__, url_prefix='/email')
 
+def init_app(app, db):
+    """Initialize email blueprint with app and database"""
+    # Add link to subscription page in navbar
+    @app.context_processor
+    def inject_email_routes():
+        return {
+            'email_routes': {
+                'subscribe': url_for('email.subscribe')
+            }
+        }
+
 # SendGrid API Key
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = 'news@trustedconservative.news'  # Replace with your sending domain
