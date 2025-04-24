@@ -110,7 +110,7 @@
     margin: 0 auto;
 }
 
-/* Share buttons */
+/* Share buttons and dropdown */
 .share-btn {
     display: inline-flex;
     align-items: center;
@@ -121,6 +121,44 @@
     margin-right: 10px;
     font-size: 1.2rem;
     transition: background-color 0.3s ease;
+}
+
+/* Custom social share dropdown */
+.social-share-dropdown {
+    display: block;
+    min-width: 200px;
+    padding: 0.5rem 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    background-color: var(--bs-dark);
+    border: 1px solid var(--bs-gray-700);
+    border-radius: 0.375rem;
+}
+
+.social-share-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    color: var(--bs-light);
+    transition: all 0.2s ease-in-out;
+}
+
+.social-share-dropdown .dropdown-item:hover {
+    background-color: var(--bs-gray-800);
+}
+
+.social-share-dropdown .dropdown-item i {
+    font-size: 1.1rem;
+}
+
+.social-share-dropdown .dropdown-divider {
+    border-top: 1px solid var(--bs-gray-700);
+    margin: 0.5rem 0;
+}
+
+.social-share-dropdown .dropdown-header {
+    color: var(--bs-gray-500);
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
 }
 
 /* Article detail page */
