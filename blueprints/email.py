@@ -10,6 +10,9 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import db directly
+from app import db
+
 # Create Blueprint
 email_bp = Blueprint('email', __name__, url_prefix='/email')
 
@@ -32,7 +35,6 @@ DEFAULT_FROM_EMAIL = 'news@trustedconservative.news'  # Replace with your sendin
 def subscribe():
     """Subscription form and processing"""
     from models import EmailSubscriber
-    db = current_app.extensions['sqlalchemy'].db
     
     if request.method == 'POST':
         email = request.form.get('email')
@@ -81,7 +83,6 @@ def subscribe():
 def confirm_subscription(token):
     """Confirm email subscription with token"""
     from models import EmailSubscriber
-    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
@@ -99,7 +100,6 @@ def confirm_subscription(token):
 def unsubscribe(token):
     """Unsubscribe from newsletter"""
     from models import EmailSubscriber
-    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
@@ -117,7 +117,6 @@ def unsubscribe(token):
 def manage_preferences(token):
     """Manage email preferences"""
     from models import EmailSubscriber, Article
-    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
