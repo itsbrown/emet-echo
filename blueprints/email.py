@@ -78,10 +78,16 @@ def subscribe():
         # Send confirmation email
         if send_confirmation_email(new_subscriber, db):
             flash('Please check your email to confirm your subscription', 'success')
+            return redirect(url_for('index'))
         else:
+            # Email sending failed, provide a helpful message with info about development mode
             flash('There was an error sending the confirmation email. Please try again later.', 'danger')
             
-        return redirect(url_for('index'))
+            # For development purposes, provide a direct link to confirm
+            dev_confirm_url = url_for('email.dev_confirm_subscription', email=email)
+            flash(f'Developer: To confirm without email, <a href="{dev_confirm_url}">click here</a>', 'warning')
+            
+            return redirect(url_for('index'))
         
     # GET request - show form
     return render_template('subscribe.html')
@@ -102,6 +108,25 @@ def confirm_subscription(token):
     db.session.commit()
     
     flash('Your subscription has been confirmed. Thank you!', 'success')
+    return redirect(url_for('index'))
+    
+@email_bp.route('/dev-confirm/<email>')
+def dev_confirm_subscription(email):
+    """Development route to confirm subscription without email (for testing only)"""
+    from models import EmailSubscriber
+    from app import db
+    
+    # This route is for development purposes only - should be removed in production
+    subscriber = EmailSubscriber.query.filter_by(email=email).first()
+    
+    if not subscriber:
+        flash('Subscriber not found.', 'danger')
+        return redirect(url_for('index'))
+    
+    subscriber.confirmed_at = datetime.utcnow()
+    db.session.commit()
+    
+    flash('DEV MODE: Your subscription has been confirmed without email verification.', 'warning')
     return redirect(url_for('index'))
 
 @email_bp.route('/unsubscribe/<token>')
