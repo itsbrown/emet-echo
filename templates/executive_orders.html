@@ -169,7 +169,7 @@
                             <a id="modal-official-link" href="#" target="_blank" class="btn btn-primary mb-2">
                                 <i class="bi bi-file-earmark-pdf me-2"></i> View Official Document
                             </a>
-                            <button class="btn btn-outline-secondary share-btn" 
+                            <button class="btn btn-outline-secondary share-button" 
                                     data-title="Trump Executive Order" 
                                     data-url="">
                                 <i class="bi bi-share me-2"></i> Share
@@ -308,7 +308,7 @@
                     }
                     
                     // Update share button
-                    const shareBtn = document.querySelector('.share-btn');
+                    const shareBtn = document.querySelector('.share-button');
                     shareBtn.setAttribute('data-url', window.location.origin + '/executive-orders?order=' + orderData.order_number);
                     shareBtn.setAttribute('data-title', 'Trump Executive Order: ' + orderData.title);
                     
