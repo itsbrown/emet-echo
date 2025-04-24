@@ -33,6 +33,10 @@ DEFAULT_FROM_EMAIL = 'news@trustedconservative.news'  # Replace with your sendin
 def subscribe():
     """Subscription form and processing"""
     from models import EmailSubscriber
+    from flask import current_app
+    
+    # Get db from app
+    db = current_app.extensions['sqlalchemy'].db
     
     if request.method == 'POST':
         email = request.form.get('email')
@@ -81,6 +85,10 @@ def subscribe():
 def confirm_subscription(token):
     """Confirm email subscription with token"""
     from models import EmailSubscriber
+    from flask import current_app
+    
+    # Get db from app
+    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
@@ -98,6 +106,10 @@ def confirm_subscription(token):
 def unsubscribe(token):
     """Unsubscribe from newsletter"""
     from models import EmailSubscriber
+    from flask import current_app
+    
+    # Get db from app
+    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
@@ -115,6 +127,10 @@ def unsubscribe(token):
 def manage_preferences(token):
     """Manage email preferences"""
     from models import EmailSubscriber, Article
+    from flask import current_app
+    
+    # Get db from app
+    db = current_app.extensions['sqlalchemy'].db
     
     subscriber = EmailSubscriber.query.filter_by(confirmation_token=token).first()
     
@@ -359,6 +375,10 @@ def get_personalized_articles(subscriber, limit=10):
         list: List of Article objects
     """
     from models import Article
+    from flask import current_app
+    
+    # Get db from app
+    db = current_app.extensions['sqlalchemy'].db
     
     # Get subscriber preferences
     preferred_categories = subscriber.get_preferred_categories()
@@ -400,6 +420,9 @@ def send_all_daily_digests():
         tuple: (successful_count, failed_count)
     """
     from models import EmailSubscriber
+    from flask import current_app
+    
+    # Get db from app
     db = current_app.extensions['sqlalchemy'].db
     
     # Get all confirmed and active subscribers
