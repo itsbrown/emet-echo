@@ -39,19 +39,19 @@ function setupShareButtons() {
         
         // Create the dropdown menu
         const menu = document.createElement('div');
-        menu.className = 'social-share-dropdown dropdown-menu p-2';
+        menu.className = 'social-share-dropdown dropdown-menu p-2 show';
         menu.innerHTML = `
             <h6 class="dropdown-header">Share via</h6>
-            <a class="dropdown-item" href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank">
                 <i class="bi bi-twitter me-2"></i>X (Twitter)
             </a>
-            <a class="dropdown-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank">
                 <i class="bi bi-facebook me-2"></i>Facebook
             </a>
-            <a class="dropdown-item" href="https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}" target="_blank">
                 <i class="bi bi-linkedin me-2"></i>LinkedIn
             </a>
-            <a class="dropdown-item" href="mailto:?subject=${encodedTitle}&body=${encodedTitle}%0A${encodedUrl}" target="_blank">
+            <a class="dropdown-item social-share-item" href="mailto:?subject=${encodedTitle}&body=${encodedTitle}%0A${encodedUrl}">
                 <i class="bi bi-envelope me-2"></i>Email
             </a>
             <div class="dropdown-divider"></div>
@@ -63,8 +63,19 @@ function setupShareButtons() {
         // Position the menu near the button
         const rect = target.getBoundingClientRect();
         menu.style.position = 'absolute';
-        menu.style.top = rect.bottom + 'px';
-        menu.style.left = rect.left + 'px';
+        menu.style.top = (rect.bottom + window.scrollY) + 'px';
+        
+        // Ensure the menu doesn't go off-screen on mobile
+        const viewportWidth = window.innerWidth;
+        const menuWidth = 220; // Approximate width of the menu
+        
+        // If the menu would go off the right edge, align it to the right of the button
+        if (rect.left + menuWidth > viewportWidth) {
+            menu.style.right = (viewportWidth - rect.right - window.scrollX) + 'px';
+        } else {
+            menu.style.left = (rect.left + window.scrollX) + 'px';
+        }
+        
         menu.style.zIndex = 1050;
         
         // Add to document
@@ -90,13 +101,29 @@ function setupShareButtons() {
             });
         }
         
+        // Add click handlers to social links to close menu after click
+        const socialLinks = menu.querySelectorAll('.social-share-item');
+        socialLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                // Close the menu after a small delay to ensure the link opens
+                setTimeout(() => {
+                    menu.remove();
+                }, 100);
+            });
+        });
+        
         // Close menu when clicking outside
-        document.addEventListener('click', function closeMenu(e) {
+        const closeMenuHandler = function(e) {
             if (!menu.contains(e.target) && e.target !== target) {
                 menu.remove();
-                document.removeEventListener('click', closeMenu);
+                document.removeEventListener('click', closeMenuHandler);
             }
-        });
+        };
+        
+        // Use a setTimeout to avoid the immediate click triggering the close
+        setTimeout(() => {
+            document.addEventListener('click', closeMenuHandler);
+        }, 0);
     };
     
     // Add click handlers to all share buttons
@@ -107,6 +134,11 @@ function setupShareButtons() {
             const url = button.getAttribute('data-url');
             const title = button.getAttribute('data-title');
             
+            // Always use our custom sharing menu as the primary method
+            // It's more reliable and works consistently across all browsers
+            createSocialShareMenu(button, url, title);
+            
+            /* Disabled Web Share API due to frequent errors
             // Check if Web Share API is available (mainly on mobile)
             if (navigator.share) {
                 navigator.share({
@@ -123,6 +155,7 @@ function setupShareButtons() {
                 // Show custom share menu on desktop
                 createSocialShareMenu(button, url, title);
             }
+            */
         });
     });
 }
