@@ -306,8 +306,22 @@ def send_daily_digest(subscriber, db):
         _external=True
     )
     
+    # Get content types
+    content_types = subscriber.get_content_types()
+    
+    # Create content type descriptions for email
+    content_descriptions = []
+    if "general" in content_types:
+        content_descriptions.append("conservative news")
+    if "trump_news" in content_types:
+        content_descriptions.append("positive Trump news")
+    if "executive_orders" in content_types:
+        content_descriptions.append("executive order updates")
+        
+    content_type_text = " and ".join(content_descriptions)
+    
     # Send email with articles
-    subject = f"Your Conservative News Digest for {datetime.now().strftime('%B %d, %Y')}"
+    subject = f"Your Personalized Emet Echo Digest for {datetime.now().strftime('%B %d, %Y')}"
     
     html_content = render_template(
         'emails/daily_digest.html',
@@ -315,19 +329,27 @@ def send_daily_digest(subscriber, db):
         articles=articles,
         date=datetime.now().strftime('%B %d, %Y'),
         unsubscribe_url=unsubscribe_url,
-        preferences_url=preferences_url
+        preferences_url=preferences_url,
+        content_type_text=content_type_text
     )
     
     text_content = f"""
     Hello {subscriber.first_name or 'there'},
     
-    Here is your Conservative News Digest for {datetime.now().strftime('%B %d, %Y')}:
+    Here is your personalized Emet Echo digest with {content_type_text} for {datetime.now().strftime('%B %d, %Y')}:
     
     """
     
     # Add articles to text content
     for idx, article in enumerate(articles[:5], 1):
-        text_content += f"\n{idx}. {article.title}\n   {article.url}\n"
+        # Handle both Article objects and dictionary items (executive orders)
+        title = article['title'] if isinstance(article, dict) else article.title
+        url = article['url'] if isinstance(article, dict) else article.url
+        
+        # Add indicator for executive orders
+        prefix = "[EXECUTIVE ORDER] " if isinstance(article, dict) and article.get('is_executive_order') else ""
+        
+        text_content += f"\n{idx}. {prefix}{title}\n   {url}\n"
     
     text_content += f"\n\nTo unsubscribe, visit: {unsubscribe_url}"
     text_content += f"\nTo manage your preferences, visit: {preferences_url}"
@@ -376,40 +398,94 @@ def get_personalized_articles(subscriber, limit=10):
     Returns:
         list: List of Article objects
     """
-    from models import Article
+    from models import Article, ExecutiveOrder
     from app import db
     
     # Get subscriber preferences
     preferred_categories = subscriber.get_preferred_categories()
     preferred_sources = subscriber.get_preferred_sources()
     excluded_sources = subscriber.get_excluded_sources()
+    content_types = subscriber.get_content_types()
     
-    # Base query
-    query = Article.query
+    # Initialize empty list for all content
+    all_content = []
     
-    # Filter by date (last 24 hours)
-    yesterday = datetime.utcnow() - timedelta(days=1)
-    query = query.filter(Article.published_at >= yesterday)
+    # Get articles based on content type preferences
+    if "general" in content_types:
+        # Base query for general news
+        query = Article.query
+        
+        # Filter by date (last 24 hours) for general news
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        query = query.filter(Article.published_at >= yesterday)
+        
+        # Apply category preferences if specified
+        if preferred_categories:
+            query = query.filter(Article.category.in_(preferred_categories))
+        
+        # Apply source preferences if specified
+        if preferred_sources:
+            query = query.filter(Article.source_name.in_(preferred_sources))
+        
+        # Apply source exclusions if specified
+        if excluded_sources:
+            query = query.filter(~Article.source_name.in_(excluded_sources))
+        
+        # Order by publish date (newest first)
+        query = query.order_by(Article.published_at.desc())
+        
+        # Get general news articles
+        general_articles = query.limit(limit//2 if len(content_types) > 1 else limit).all()
+        all_content.extend(general_articles)
     
-    # Apply category preferences if specified
-    if preferred_categories:
-        query = query.filter(Article.category.in_(preferred_categories))
+    # Get Trump news if selected
+    if "trump_news" in content_types:
+        # Query specific to Trump-related positive news
+        trump_query = Article.query.filter(
+            Article.title.ilike('%trump%'),
+            Article.published_at >= (datetime.utcnow() - timedelta(days=2))  # Wider time range for Trump news
+        )
+        
+        # Order by publish date (newest first)
+        trump_query = trump_query.order_by(Article.published_at.desc())
+        
+        # Apply source exclusions if specified
+        if excluded_sources:
+            trump_query = trump_query.filter(~Article.source_name.in_(excluded_sources))
+            
+        # Get Trump news articles
+        trump_articles = trump_query.limit(limit//2 if len(content_types) > 1 else limit).all()
+        all_content.extend(trump_articles)
     
-    # Apply source preferences if specified
-    if preferred_sources:
-        query = query.filter(Article.source_name.in_(preferred_sources))
+    # Get executive orders if selected
+    if "executive_orders" in content_types:
+        # Query for executive orders, sorted by date issued (newest first)
+        eo_query = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc())
+        
+        # Get latest executive orders
+        exec_orders = eo_query.limit(3).all()  # Limit to 3 executive orders
+        
+        # Convert executive orders to article-like format for the template
+        for order in exec_orders:
+            # Create a dictionary with the same keys as an Article would have
+            order_dict = {
+                'title': f"Executive Order: {order.title}",
+                'url': url_for('executive_order_detail', order_id=order.id, _external=True),
+                'source_name': 'White House',
+                'published_at': order.date_issued,
+                'summary': order.summary,
+                'is_executive_order': True,
+                'order_number': order.order_number
+            }
+            all_content.append(order_dict)
     
-    # Apply source exclusions if specified
-    if excluded_sources:
-        query = query.filter(~Article.source_name.in_(excluded_sources))
+    # Sort combined content by date (newest first)
+    # For exec orders which are dictionaries, we need to sort by the published_at key
+    # For regular articles, we sort by the published_at attribute
+    all_content.sort(key=lambda x: x['published_at'] if isinstance(x, dict) else x.published_at, reverse=True)
     
-    # Order by publish date (newest first)
-    query = query.order_by(Article.published_at.desc())
-    
-    # Limit results
-    articles = query.limit(limit).all()
-    
-    return articles
+    # Limit final results
+    return all_content[:limit]
 
 def send_all_daily_digests():
     """

@@ -82,32 +82,50 @@
 <body>
     <div class="header">
         <h1>Emet Echo News Digest</h1>
+        <h3 style="margin-top: 5px; font-weight: normal; color: #f0f0f0;">{{ content_type_text|capitalize }}</h3>
         <p>{{ date }}</p>
     </div>
     
     <div class="content">
         <p>Hello {% if first_name %}{{ first_name }}{% else %}there{% endif %},</p>
         
-        <p>Here's your personalized digest of today's most important conservative news stories:</p>
+        <p>Here's your personalized digest of today's most important {{ content_type_text }}:</p>
         
         {% for article in articles %}
         <div class="article">
             <div class="article-title">{{ article.title }}</div>
-            <div class="article-source">{{ article.source_name }} • {{ article.published_at.strftime('%B %d, %Y') }}</div>
             
-            {% if article.url_to_image %}
-            <img src="{{ article.url_to_image }}" alt="Article image" class="article-image">
-            {% endif %}
-            
-            <div class="article-description">
-                {% if article.summary %}
-                    {{ article.summary|truncate(200) }}
-                {% else %}
-                    {{ article.description|truncate(200) }}
+            {% if article.is_executive_order is defined and article.is_executive_order %}
+                <!-- Executive Order Template -->
+                <div class="article-source" style="color: #990000; font-weight: bold;">
+                    White House • Executive Order {{ article.order_number }}
+                </div>
+                
+                <div class="article-description">
+                    {{ article.summary|truncate(300) }}
+                </div>
+                
+                <a href="{{ article.url }}" class="article-link" style="background-color: #990000;">View Executive Order</a>
+            {% else %}
+                <!-- Regular News Article Template -->
+                <div class="article-source">
+                    {{ article.source_name }} • {{ article.published_at.strftime('%B %d, %Y') }}
+                </div>
+                
+                {% if article.url_to_image %}
+                <img src="{{ article.url_to_image }}" alt="Article image" class="article-image">
                 {% endif %}
-            </div>
-            
-            <a href="{{ article.url }}" class="article-link">Read Full Article</a>
+                
+                <div class="article-description">
+                    {% if article.summary %}
+                        {{ article.summary|truncate(200) }}
+                    {% else %}
+                        {{ article.description|truncate(200) }}
+                    {% endif %}
+                </div>
+                
+                <a href="{{ article.url }}" class="article-link">Read Full Article</a>
+            {% endif %}
         </div>
         {% endfor %}
         
