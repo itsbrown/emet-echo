@@ -66,6 +66,9 @@ class EmailSubscriber(db.Model):
     preferred_sources = db.Column(db.Text, default='[]')     # JSON string of sources
     excluded_sources = db.Column(db.Text, default='[]')      # JSON string of excluded sources
     
+    # Content type preferences
+    content_types = db.Column(db.Text, default='["general"]')  # JSON string of content types: "general", "trump_news", "executive_orders"
+    
     # Email frequency
     frequency = db.Column(db.String(20), default='daily')    # 'daily', 'weekly', etc.
     
@@ -107,3 +110,13 @@ class EmailSubscriber(db.Model):
     def set_excluded_sources(self, sources):
         """Set excluded sources from a list"""
         self.excluded_sources = json.dumps(sources)
+        
+    def get_content_types(self):
+        """Get content types preferences as a list"""
+        if not self.content_types:
+            return ["general"]
+        return json.loads(self.content_types)
+        
+    def set_content_types(self, types):
+        """Set content types preferences from a list"""
+        self.content_types = json.dumps(types)

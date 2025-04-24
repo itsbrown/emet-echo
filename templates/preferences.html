@@ -33,6 +33,39 @@
                         </div>
                         
                         <div class="mb-4">
+                            <h5>Content Types</h5>
+                            <p class="text-muted small">Select the types of content you want to receive</p>
+                            {% set content_types = subscriber.get_content_types() %}
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="content_types" 
+                                    id="content-general" value="general"
+                                    {% if "general" in content_types %}checked{% endif %}>
+                                <label class="form-check-label" for="content-general">
+                                    General Conservative News
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="content_types" 
+                                    id="content-trump" value="trump_news"
+                                    {% if "trump_news" in content_types %}checked{% endif %}>
+                                <label class="form-check-label" for="content-trump">
+                                    Positive Trump News from Around the World
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="content_types" 
+                                    id="content-eo" value="executive_orders"
+                                    {% if "executive_orders" in content_types %}checked{% endif %}>
+                                <label class="form-check-label" for="content-eo">
+                                    Executive Order Updates & Summaries
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
                             <h5>News Categories</h5>
                             <p class="text-muted small">Select the categories you're interested in</p>
                             

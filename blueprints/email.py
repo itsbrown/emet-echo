@@ -55,6 +55,11 @@ def subscribe():
                 flash('Confirmation email resent. Please check your inbox', 'info')
             return redirect(url_for('index'))
         
+        # Get content types
+        content_types = request.form.getlist('content_types')
+        if not content_types:
+            content_types = ['general']  # Default to general news if nothing selected
+        
         # Create new subscriber
         new_subscriber = EmailSubscriber(
             email=email,
@@ -62,6 +67,9 @@ def subscribe():
             last_name=last_name,
             confirmation_token=str(uuid.uuid4())
         )
+        
+        # Set content types
+        new_subscriber.set_content_types(content_types)
         
         # Save to database
         db.session.add(new_subscriber)
@@ -132,10 +140,16 @@ def manage_preferences(token):
         sources = request.form.getlist('sources')
         excluded = request.form.getlist('excluded_sources')
         frequency = request.form.get('frequency', 'daily')
+        content_types = request.form.getlist('content_types')
         
+        # Ensure at least one content type is selected
+        if not content_types:
+            content_types = ['general']
+            
         subscriber.set_preferred_categories(categories)
         subscriber.set_preferred_sources(sources)
         subscriber.set_excluded_sources(excluded)
+        subscriber.set_content_types(content_types)
         subscriber.frequency = frequency
         
         db.session.commit()
