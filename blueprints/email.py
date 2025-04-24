@@ -5,13 +5,11 @@ from datetime import datetime, timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content, TemplateId, Personalization
 from flask import Blueprint, request, redirect, url_for, flash, render_template, current_app, session
+# We'll get db in the routes to avoid circular imports
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Import db directly
-from app import db
 
 # Create Blueprint
 email_bp = Blueprint('email', __name__, url_prefix='/email')
