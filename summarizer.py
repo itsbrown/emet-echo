@@ -1,6 +1,8 @@
 import nltk
 import ssl
 import logging
+import re
+import html
 from nltk.tokenize import sent_tokenize
 from nltk.corpus import stopwords
 from nltk.probability import FreqDist
@@ -43,6 +45,44 @@ for resource_path, resource_name in required_resources:
         print(f"NLTK resource {resource_name} is NOT available")
         logger.warning(f"NLTK resource {resource_name} is not available")
 
+def clean_html(text):
+    """
+    Remove HTML tags and entities from text
+    
+    Args:
+        text: Text that may contain HTML
+        
+    Returns:
+        Clean plain text without HTML
+    """
+    if not text:
+        return ""
+        
+    # First, decode HTML entities
+    text = html.unescape(text)
+    
+    # Remove HTML tags (this pattern matches both opening and closing tags)
+    text = re.sub(r'<[^>]*>', ' ', text)
+    
+    # Remove any leftover HTML-like content
+    text = re.sub(r'&[a-zA-Z0-9]+;', ' ', text)
+    
+    # Fix URL issues in text (often found in Federal Register documents)
+    text = re.sub(r'\[www\.gpo\.gov\]', '', text)
+    text = re.sub(r'\[\s*([^\]]+)\s*\]', r'\1', text)
+    
+    # Remove common Federal Register header/footer content
+    text = re.sub(r'Federal Register[^\n]*\n', '', text)
+    text = re.sub(r'Presidential Documents[^\n]*\n', '', text)
+    text = re.sub(r'FR Doc[^\n]*\n', '', text)
+    text = re.sub(r'Volume \d+[^\n]*\n', '', text)
+    text = re.sub(r'Pages \d+-\d+[^\n]*\n', '', text)
+    
+    # Fix spacing issues
+    text = re.sub(r'\s+', ' ', text)
+    
+    return text.strip()
+
 def generate_summary(text, num_sentences=3, style="standard"):
     """
     Generate a summary of the given text using extractive summarization
@@ -58,15 +98,23 @@ def generate_summary(text, num_sentences=3, style="standard"):
     if not text or text == "Content not available":
         return "Summary not available."
     
+    # Clean any HTML from the input text
+    cleaned_text = clean_html(text)
+    
+    # If cleaning removed too much content, use original text as fallback
+    if len(cleaned_text) < 100 and len(text) > 100:
+        logger.warning("HTML cleaning removed too much content, using original text")
+        cleaned_text = text
+    
     # Delegate to the appropriate summary function based on style
     try:
         if style == "journalist":
-            return generate_journalist_summary(text, num_sentences)
+            return generate_journalist_summary(cleaned_text, num_sentences)
         elif style == "twitter":
-            return generate_twitter_summary(text)
+            return generate_twitter_summary(cleaned_text)
         else:
             # Standard extractive summary
-            return generate_extractive_summary(text, num_sentences)
+            return generate_extractive_summary(cleaned_text, num_sentences)
     except Exception as e:
         logger.error(f"Error generating {style} summary: {str(e)}")
         return "Unable to generate summary."

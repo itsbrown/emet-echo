@@ -173,13 +173,12 @@ def generate_twitter_summary_for_order(order_text):
         # Use our specialized Twitter summary generator
         summary = generate_summary(order_text, style="twitter")
         
-        # Fix HTML encoding issues - decode any HTML entities
-        import html
-        summary = html.unescape(summary)
+        # Clean the summary text again to be extra sure it has no HTML content
+        from summarizer import clean_html
+        summary = clean_html(summary)
         
-        # Remove any potential HTML tags
-        import re
-        summary = re.sub(r'<[^>]+>', '', summary)
+        # Add cleanup to remove Federal Register-specific formatting that might remain
+        summary = re.sub(r'Federal Register|Presidential Documents|FR Doc|Pages \d+-\d+', '', summary)
         
         # Normalize whitespace
         summary = ' '.join(summary.split())
