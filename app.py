@@ -490,6 +490,37 @@ def refresh_trending():
     
     return redirect(url_for('index'))
 
+@app.route('/refresh-executive-orders')
+def refresh_executive_orders():
+    """Manually refresh executive orders from Federal Register API"""
+    try:
+        # First, delete existing orders to force a refresh
+        from models import ExecutiveOrder
+        from executive_orders import fetch_executive_orders, initialize_executive_orders
+        
+        # Count existing orders before deletion
+        existing_count = ExecutiveOrder.query.count()
+        
+        # Delete all existing orders
+        ExecutiveOrder.query.delete()
+        db.session.commit()
+        
+        # Now fetch new orders from Federal Register API
+        orders = fetch_executive_orders(limit=15)
+        
+        # Initialize with new data
+        initialize_executive_orders()
+        
+        # Count new orders
+        new_count = ExecutiveOrder.query.count()
+        
+        flash(f"Executive orders refreshed successfully! Replaced {existing_count} orders with {new_count} orders from Federal Register API.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error refreshing executive orders: {str(e)}", "danger")
+    
+    return redirect(url_for('executive_orders'))
+
 @app.route('/executive-orders')
 def executive_orders():
     """Display Trump executive orders with AI summaries"""
