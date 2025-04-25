@@ -581,6 +581,36 @@ def executive_orders():
         flash(f"Error loading executive orders: {str(e)}", "danger")
         return redirect(url_for('index'))
 
+@app.route('/api/generate-twitter-summary', methods=['POST'])
+def generate_twitter_summary():
+    """
+    API endpoint to generate Twitter-friendly summaries for executive orders
+    
+    Accepts JSON object with 'text' parameter containing the full text
+    Returns JSON object with 'summary' parameter containing the Twitter-friendly summary
+    """
+    try:
+        # Get the text from the request
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({'error': 'Missing text parameter'}), 400
+        
+        # Generate a Twitter-friendly summary
+        from executive_orders import generate_twitter_summary_for_order
+        
+        # Get the text from the request
+        text = data['text']
+        
+        # Generate the Twitter summary
+        twitter_summary = generate_twitter_summary_for_order(text)
+        
+        # Return the summary as JSON
+        return jsonify({'summary': twitter_summary})
+    
+    except Exception as e:
+        logger.error(f"Error generating Twitter summary: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('error.html', error="Page not found"), 404

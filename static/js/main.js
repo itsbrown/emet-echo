@@ -238,6 +238,75 @@ function refreshNews() {
 }
 
 /**
+ * Set up Twitter share buttons with AI-generated summaries for executive orders
+ */
+function setupTwitterShareButtons() {
+    const twitterShareButtons = document.querySelectorAll('.twitter-share-button');
+    
+    twitterShareButtons.forEach(button => {
+        button.addEventListener('click', async function(event) {
+            event.preventDefault();
+            
+            // Get the data attributes
+            const orderText = this.getAttribute('data-order-text');
+            const title = this.getAttribute('data-title');
+            const url = this.getAttribute('data-url');
+            
+            // Show loading state
+            const originalButtonText = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
+            this.disabled = true;
+            
+            try {
+                // Get AI-generated Twitter summary via API call
+                const response = await fetch('/api/generate-twitter-summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: orderText })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const data = await response.json();
+                let tweetText = data.summary;
+                
+                // Ensure tweet text isn't too long for Twitter (280 char limit minus url length)
+                const maxLength = 230; // Leave room for URL
+                if (tweetText.length > maxLength) {
+                    tweetText = tweetText.substring(0, maxLength - 3) + '...';
+                }
+                
+                // Encode for URL
+                const encodedText = encodeURIComponent(tweetText);
+                const encodedUrl = encodeURIComponent(url);
+                
+                // Open Twitter share window
+                const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+                window.open(twitterShareUrl, '_blank', 'width=550,height=420');
+                
+            } catch (error) {
+                console.error('Error generating Twitter summary:', error);
+                
+                // Fallback: Share with just the title if AI summary generation fails
+                const encodedTitle = encodeURIComponent(`Trump Executive Order: ${title}`);
+                const encodedUrl = encodeURIComponent(url);
+                const fallbackTwitterUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+                window.open(fallbackTwitterUrl, '_blank', 'width=550,height=420');
+                
+            } finally {
+                // Restore button state
+                this.innerHTML = originalButtonText;
+                this.disabled = false;
+            }
+        });
+    });
+}
+
+/**
  * Set active navigation link based on current URL
  */
 function setActiveNavLink() {
