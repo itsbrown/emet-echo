@@ -125,9 +125,10 @@ def initialize_data():
         news_data["trending"] = stored_articles
         news_data["last_updated"] = datetime.now()
         
-        # Initialize executive orders database
+        # Initialize executive orders database with fresh data from Federal Register API
         from executive_orders import initialize_executive_orders
-        initialize_executive_orders()
+        # Force refresh to ensure we have the latest data from Federal Register API
+        initialize_executive_orders(force_refresh=True)
         
         logger.info(f"Initialized with {len(stored_articles)} trending articles")
     except Exception as e:
@@ -494,28 +495,19 @@ def refresh_trending():
 def refresh_executive_orders():
     """Manually refresh executive orders from Federal Register API"""
     try:
-        # First, delete existing orders to force a refresh
+        # Import here to avoid circular imports
+        from executive_orders import initialize_executive_orders
+        
+        # Force refresh of executive orders
+        initialize_executive_orders(force_refresh=True)
+        
+        # Get the count of orders after refresh
         from models import ExecutiveOrder
-        from executive_orders import fetch_executive_orders, initialize_executive_orders
-        
-        # Count existing orders before deletion
-        existing_count = ExecutiveOrder.query.count()
-        
-        # Delete all existing orders
-        ExecutiveOrder.query.delete()
-        db.session.commit()
-        
-        # Now fetch new orders from Federal Register API
-        orders = fetch_executive_orders(limit=15)
-        
-        # Initialize with new data
-        initialize_executive_orders()
-        
-        # Count new orders
         new_count = ExecutiveOrder.query.count()
         
-        flash(f"Executive orders refreshed successfully! Replaced {existing_count} orders with {new_count} orders from Federal Register API.", "success")
+        flash(f"Executive orders refreshed successfully! Retrieved {new_count} orders from Federal Register API.", "success")
     except Exception as e:
+        logger.error(f"Error refreshing executive orders: {str(e)}")
         db.session.rollback()
         flash(f"Error refreshing executive orders: {str(e)}", "danger")
     

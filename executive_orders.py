@@ -150,20 +150,31 @@ def summarize_order(order_text):
         # Return a portion of the text as fallback
         return order_text[:300] + "..."
 
-def initialize_executive_orders():
+def initialize_executive_orders(force_refresh=False):
     """
     Initialize the database with executive orders
+    
+    Args:
+        force_refresh: If True, delete existing orders and fetch new ones
     """
     try:
         # Check if we already have orders in the database
         existing_count = ExecutiveOrder.query.count()
-        if existing_count > 0:
+        
+        # If we have orders and aren't forcing a refresh, skip initialization
+        if existing_count > 0 and not force_refresh:
             logger.info(f"Found {existing_count} executive orders in database, skipping initialization")
             return
         
-        # Fetch executive orders
+        # If force_refresh is True, delete existing orders
+        if force_refresh and existing_count > 0:
+            logger.info(f"Forcing refresh: Deleting {existing_count} existing executive orders")
+            ExecutiveOrder.query.delete()
+            db.session.commit()
+        
+        # Fetch executive orders from Federal Register API
         orders = fetch_executive_orders(limit=15)  # Fetch the latest 15 executive orders
-        logger.info(f"Fetched {len(orders)} executive orders")
+        logger.info(f"Fetched {len(orders)} executive orders from Federal Register API")
         
         # Process and store each order
         for order_data in orders:
