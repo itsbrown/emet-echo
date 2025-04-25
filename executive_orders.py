@@ -171,7 +171,20 @@ def generate_twitter_summary_for_order(order_text):
     """
     try:
         # Use our specialized Twitter summary generator
-        return generate_summary(order_text, style="twitter")
+        summary = generate_summary(order_text, style="twitter")
+        
+        # Fix HTML encoding issues - decode any HTML entities
+        import html
+        summary = html.unescape(summary)
+        
+        # Remove any potential HTML tags
+        import re
+        summary = re.sub(r'<[^>]+>', '', summary)
+        
+        # Normalize whitespace
+        summary = ' '.join(summary.split())
+        
+        return summary
     except Exception as e:
         logger.error(f"Error generating Twitter summary: {str(e)}")
         # Provide a generic fallback

@@ -597,12 +597,17 @@ def generate_twitter_summary():
         
         # Generate a Twitter-friendly summary
         from executive_orders import generate_twitter_summary_for_order
+        import html
         
         # Get the text from the request
         text = data['text']
         
         # Generate the Twitter summary
         twitter_summary = generate_twitter_summary_for_order(text)
+        
+        # Additional cleanup for JSON response
+        # Double-check that HTML entities are decoded
+        twitter_summary = html.unescape(twitter_summary)
         
         # Return the summary as JSON
         return jsonify({'summary': twitter_summary})
