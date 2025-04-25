@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Share button functionality
     setupShareButtons();
     
+    // Twitter share button with AI summary
+    setupTwitterShareButtons();
+    
     // Initialize loading state for articles
     setupLazyLoading();
     

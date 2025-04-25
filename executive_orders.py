@@ -139,24 +139,43 @@ def fetch_executive_orders(limit=10):
         # Fallback to sample data if there's an error
         return SAMPLE_EXECUTIVE_ORDERS
 
-def summarize_order(order_text):
+def summarize_order(order_text, style="journalist"):
     """
     Generate AI summary of executive order text using our summarizer
     
     Args:
         order_text: Full text of the executive order
+        style: Summary style - "standard", "journalist", or "twitter" (default: "journalist")
         
     Returns:
-        A summary of the executive order
+        A summary of the executive order in the specified style
     """
     try:
-        # Generate summary using our existing summarizer
-        summary = generate_summary(order_text, num_sentences=5)
+        # Generate summary using our enhanced summarizer with journalist style by default
+        summary = generate_summary(order_text, num_sentences=5, style=style)
         return summary
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}")
         # Return a portion of the text as fallback
         return order_text[:300] + "..."
+
+def generate_twitter_summary_for_order(order_text):
+    """
+    Generate a Twitter/X-friendly summary for an executive order
+    
+    Args:
+        order_text: Full text of the executive order
+        
+    Returns:
+        A concise summary suitable for sharing on Twitter/X
+    """
+    try:
+        # Use our specialized Twitter summary generator
+        return generate_summary(order_text, style="twitter")
+    except Exception as e:
+        logger.error(f"Error generating Twitter summary: {str(e)}")
+        # Provide a generic fallback
+        return "New executive order issued by the White House. Click to read the details."
 
 def initialize_executive_orders(force_refresh=False):
     """

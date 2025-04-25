@@ -75,10 +75,16 @@
                     <i class="bi bi-file-earmark-pdf me-2"></i> View Official Document
                 </a>
                 {% endif %}
-                <button class="btn btn-sm btn-outline-secondary share-button" 
+                <button class="btn btn-sm btn-outline-secondary share-button mb-2" 
                         data-title="Trump Executive Order: {{ order.title }}" 
                         data-url="{{ url_for('executive_orders', order=order.order_number, _external=True) }}">
                     <i class="bi bi-share"></i> Share
+                </button>
+                <button class="btn btn-sm btn-outline-info twitter-share-button"
+                        data-order-text="{{ order.full_text }}"
+                        data-title="{{ order.title }}"
+                        data-url="{{ url_for('executive_orders', order=order.order_number, _external=True) }}">
+                    <i class="bi bi-twitter"></i> Share on X with AI Summary
                 </button>
             </div>
         </div>
