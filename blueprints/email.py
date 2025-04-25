@@ -27,7 +27,7 @@ def init_app(app, db):
 
 # SendGrid API Key
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-DEFAULT_FROM_EMAIL = 'news@trustedconservative.news'  # Replace with your sending domain
+DEFAULT_FROM_EMAIL = 'info@emetecho.com'  # Updated sender email
 
 @email_bp.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
