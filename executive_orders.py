@@ -91,7 +91,15 @@ def fetch_executive_orders(limit=10):
                 try:
                     text_response = requests.get(order["raw_text_url"])
                     if text_response.status_code == 200:
-                        full_text = text_response.text
+                        # Clean the text - remove null characters (0x00) that cause database errors
+                        raw_text = text_response.text
+                        if raw_text:
+                            # Remove null characters (0x00)
+                            full_text = raw_text.replace('\x00', '')
+                            # Normalize line endings
+                            full_text = full_text.replace('\r\n', '\n').replace('\r', '\n')
+                            # Replace any other problematic characters
+                            full_text = ''.join(c if ord(c) >= 32 or c in '\n\t' else ' ' for c in full_text)
                 except Exception as e:
                     logger.error(f"Error fetching full text: {str(e)}")
             
