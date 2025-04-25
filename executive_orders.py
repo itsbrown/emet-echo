@@ -1,6 +1,9 @@
 import os
 import logging
 import requests
+import re
+import html
+import json
 from datetime import datetime
 from app import db
 from models import ExecutiveOrder
@@ -151,13 +154,46 @@ def summarize_order(order_text, style="journalist"):
         A summary of the executive order in the specified style
     """
     try:
-        # Generate summary using our enhanced summarizer with journalist style by default
-        summary = generate_summary(order_text, num_sentences=5, style=style)
+        # Import HTML cleaning and summary generation functions
+        from summarizer import generate_summary, clean_html
+        
+        # First clean any HTML from the input text
+        cleaned_text = clean_html(order_text)
+        
+        # Generate the summary using our enhanced summarizer
+        summary = generate_summary(cleaned_text, num_sentences=5, style=style)
+        
+        # Double-check that the summary doesn't contain any HTML
+        import re
+        import html
+        
+        # Unescape HTML entities
+        summary = html.unescape(summary)
+        
+        # Remove any HTML tags that may remain
+        summary = re.sub(r'<[^>]*>', ' ', summary)
+        
+        # Remove residual Federal Register formatting that might remain
+        summary = re.sub(r'Federal Register.*?\n', '', summary)
+        summary = re.sub(r'Presidential Documents.*?\n', '', summary)
+        summary = re.sub(r'FR Doc.*?\n', '', summary)
+        summary = re.sub(r'Volume \d+.*?\n', '', summary)
+        summary = re.sub(r'Pages \d+-\d+.*?\n', '', summary)
+        
+        # Fix spacing issues
+        summary = re.sub(r'\s+', ' ', summary).strip()
+        
         return summary
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}")
-        # Return a portion of the text as fallback
-        return order_text[:300] + "..."
+        # Return a clean portion of the text as fallback
+        import html
+        import re
+        # Clean the fallback text as well
+        fallback = html.unescape(order_text[:300])
+        fallback = re.sub(r'<[^>]*>', ' ', fallback)
+        fallback = re.sub(r'\s+', ' ', fallback).strip()
+        return fallback + "..."
 
 def generate_twitter_summary_for_order(order_text):
     """
@@ -170,11 +206,14 @@ def generate_twitter_summary_for_order(order_text):
         A concise summary suitable for sharing on Twitter/X
     """
     try:
+        # First clean the input text
+        from summarizer import clean_html
+        cleaned_text = clean_html(order_text)
+        
         # Use our specialized Twitter summary generator
-        summary = generate_summary(order_text, style="twitter")
+        summary = generate_summary(cleaned_text, style="twitter")
         
         # Clean the summary text again to be extra sure it has no HTML content
-        from summarizer import clean_html
         summary = clean_html(summary)
         
         # Add cleanup to remove Federal Register-specific formatting that might remain
