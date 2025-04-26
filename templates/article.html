@@ -44,9 +44,10 @@
                 <div class="mb-4">
                     <button class="btn btn-sm btn-outline-secondary share-button" 
                             data-url="{{ article.url }}" 
-                            data-title="{{ article.title }}">
+                            data-title="{{ article.title }}"
+                            data-content="{{ article.content or article.summary or article.description }}">
                         <i class="bi bi-share"></i>
-                        Share
+                        Share with AI Summary
                     </button>
                     
                     <a href="{{ article.url }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank">

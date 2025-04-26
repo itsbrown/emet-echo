@@ -5,11 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
-    // Share button functionality
+    // Share button functionality with AI summary
     setupShareButtons();
-    
-    // Twitter share button with AI summary
-    setupTwitterShareButtons();
     
     // Initialize loading state for articles
     setupLazyLoading();
@@ -28,33 +25,77 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupShareButtons() {
     const shareButtons = document.querySelectorAll('.share-button');
     
-    // Create social sharing dropdown menu
-    const createSocialShareMenu = (target, url, title) => {
+    // Async function to create social sharing menu, potentially with AI summary
+    const createSocialShareMenu = async (target, url, title, content) => {
+        // Show a temporary loading state on the button
+        const originalButtonText = target.innerHTML;
+        target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        target.disabled = true;
+        
         // Remove any existing menu
         const existingMenu = document.querySelector('.social-share-dropdown');
         if (existingMenu) {
             existingMenu.remove();
         }
         
+        let aiSummary = null;
+        let shareTitle = title;
+        let shareText = title;
+        
+        // Try to get AI summary if content is available
+        if (content) {
+            try {
+                // Get AI-generated summary via API call
+                const response = await fetch('/api/generate-twitter-summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: content })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    aiSummary = data.summary;
+                    
+                    // Use the AI summary as share text
+                    if (aiSummary) {
+                        // Limit length for sharing services
+                        const maxLength = 230; // Leave room for URL
+                        shareText = aiSummary.length > maxLength 
+                            ? aiSummary.substring(0, maxLength - 3) + '...' 
+                            : aiSummary;
+                    }
+                }
+            } catch (error) {
+                console.error('Error generating AI summary:', error);
+                // Continue without AI summary if error occurs
+            }
+        }
+        
+        // Add "via EmetEcho.com" to the share text
+        shareText = shareText + " via EmetEcho.com";
+        
         // Encode URL and title for sharing
         const encodedUrl = encodeURIComponent(url);
         const encodedTitle = encodeURIComponent(title);
+        const encodedShareText = encodeURIComponent(shareText);
         
         // Create the dropdown menu
         const menu = document.createElement('div');
         menu.className = 'social-share-dropdown dropdown-menu p-2 show';
         menu.innerHTML = `
             <h6 class="dropdown-header">Share via</h6>
-            <a class="dropdown-item social-share-item" href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedShareText}" target="_blank">
                 <i class="bi bi-twitter me-2"></i>X (Twitter)
             </a>
-            <a class="dropdown-item social-share-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedShareText}" target="_blank">
                 <i class="bi bi-facebook me-2"></i>Facebook
             </a>
-            <a class="dropdown-item social-share-item" href="https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}" target="_blank">
+            <a class="dropdown-item social-share-item" href="https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedShareText}" target="_blank">
                 <i class="bi bi-linkedin me-2"></i>LinkedIn
             </a>
-            <a class="dropdown-item social-share-item" href="mailto:?subject=${encodedTitle}&body=${encodedTitle}%0A${encodedUrl}">
+            <a class="dropdown-item social-share-item" href="mailto:?subject=${encodedTitle}&body=${encodedShareText}%0A%0A${encodedUrl}">
                 <i class="bi bi-envelope me-2"></i>Email
             </a>
             <div class="dropdown-divider"></div>
@@ -80,6 +121,10 @@ function setupShareButtons() {
         }
         
         menu.style.zIndex = 1050;
+        
+        // Restore button state
+        target.innerHTML = originalButtonText;
+        target.disabled = false;
         
         // Add to document
         document.body.appendChild(menu);
@@ -131,34 +176,15 @@ function setupShareButtons() {
     
     // Add click handlers to all share buttons
     shareButtons.forEach(button => {
-        button.addEventListener('click', event => {
+        button.addEventListener('click', async (event) => {
             event.preventDefault();
             
             const url = button.getAttribute('data-url');
             const title = button.getAttribute('data-title');
+            const content = button.getAttribute('data-content') || '';
             
-            // Always use our custom sharing menu as the primary method
-            // It's more reliable and works consistently across all browsers
-            createSocialShareMenu(button, url, title);
-            
-            /* Disabled Web Share API due to frequent errors
-            // Check if Web Share API is available (mainly on mobile)
-            if (navigator.share) {
-                navigator.share({
-                    title: title,
-                    url: url
-                })
-                .then(() => console.log('Shared successfully'))
-                .catch(error => {
-                    console.error('Error sharing:', error);
-                    // Fallback to custom menu if Web Share API fails
-                    createSocialShareMenu(button, url, title);
-                });
-            } else {
-                // Show custom share menu on desktop
-                createSocialShareMenu(button, url, title);
-            }
-            */
+            // Use our enhanced social sharing menu with AI summary
+            await createSocialShareMenu(button, url, title, content);
         });
     });
 }
@@ -235,75 +261,6 @@ function refreshNews() {
         // Redirect to refresh endpoint
         window.location.href = '/refresh';
     }
-}
-
-/**
- * Set up Twitter share buttons with AI-generated summaries for executive orders
- */
-function setupTwitterShareButtons() {
-    const twitterShareButtons = document.querySelectorAll('.twitter-share-button');
-    
-    twitterShareButtons.forEach(button => {
-        button.addEventListener('click', async function(event) {
-            event.preventDefault();
-            
-            // Get the data attributes
-            const orderText = this.getAttribute('data-order-text');
-            const title = this.getAttribute('data-title');
-            const url = this.getAttribute('data-url');
-            
-            // Show loading state
-            const originalButtonText = this.innerHTML;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
-            this.disabled = true;
-            
-            try {
-                // Get AI-generated Twitter summary via API call
-                const response = await fetch('/api/generate-twitter-summary', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: orderText })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                
-                const data = await response.json();
-                let tweetText = data.summary;
-                
-                // Ensure tweet text isn't too long for Twitter (280 char limit minus url length)
-                const maxLength = 230; // Leave room for URL
-                if (tweetText.length > maxLength) {
-                    tweetText = tweetText.substring(0, maxLength - 3) + '...';
-                }
-                
-                // Encode for URL
-                const encodedText = encodeURIComponent(tweetText);
-                const encodedUrl = encodeURIComponent(url);
-                
-                // Open Twitter share window
-                const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
-                window.open(twitterShareUrl, '_blank', 'width=550,height=420');
-                
-            } catch (error) {
-                console.error('Error generating Twitter summary:', error);
-                
-                // Fallback: Share with just the title if AI summary generation fails
-                const encodedTitle = encodeURIComponent(`Trump Executive Order: ${title}`);
-                const encodedUrl = encodeURIComponent(url);
-                const fallbackTwitterUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
-                window.open(fallbackTwitterUrl, '_blank', 'width=550,height=420');
-                
-            } finally {
-                // Restore button state
-                this.innerHTML = originalButtonText;
-                this.disabled = false;
-            }
-        });
-    });
 }
 
 /**
