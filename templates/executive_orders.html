@@ -176,8 +176,9 @@
                             </a>
                             <button class="btn btn-sm btn-outline-secondary share-button" 
                                     data-title="Trump Executive Order" 
-                                    data-url="">
-                                <i class="bi bi-share"></i> Share
+                                    data-url=""
+                                    data-content="">
+                                <i class="bi bi-share"></i> Share with AI Summary
                             </button>
                         </div>
                     </div>
@@ -316,6 +317,7 @@
                     const shareBtn = document.querySelector('.share-button');
                     shareBtn.setAttribute('data-url', window.location.origin + '/executive-orders?order=' + orderData.order_number);
                     shareBtn.setAttribute('data-title', 'Trump Executive Order: ' + orderData.title);
+                    shareBtn.setAttribute('data-content', orderData.full_text || orderData.summary || '');
                     
                     // Show the modal
                     modal.show();

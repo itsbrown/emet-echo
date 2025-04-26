@@ -40,8 +40,9 @@
                                     <a href="{{ url_for('article_detail', article_url=article.url) }}" class="btn btn-primary">Read More</a>
                                     <button class="btn btn-outline-secondary share-button float-end" 
                                             data-title="{{ article.title }}" 
-                                            data-url="{{ article.url }}">
-                                        <i class="bi bi-share"></i> Share
+                                            data-url="{{ article.url }}"
+                                            data-content="{{ article.description }}">
+                                        <i class="bi bi-share"></i> Share with AI Summary
                                     </button>
                                 </div>
                             </div>
