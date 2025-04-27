@@ -40,10 +40,16 @@ APPROVED_SOURCES = [
     "breakingpoints.com",
     
     # Additional Independent Sources
-    "rumble.com",                 # Rumble (Jovan Hutton Pulitzer and others)
+    "rumble.com",                 # Rumble platform
+    "rumble.com/JovanHPulitzer",  # Jovan Hutton Pulitzer Rumble channel
+    "rumble.com/c/DonaldJTrumpJr", # Don Jr.'s "Triggered" show
+    "rumble.com/c/AndWeKnow",     # And We Know channel
     "tuckercarlson.com",          # Tucker Carlson Network
+    "dailywire.com",              # Daily Wire
     "x.com/TuckerCarlson",        # Tucker Carlson X account
     "x.com/JovanHPulitzer",       # Jovan Hutton Pulitzer X account
+    "x.com/laralogan",            # Lara Logan X account
+    "laralogan.substack.com",     # Lara Logan's Substack
     "bitchute.com",               # BitChute platform
     "gab.com",                    # Gab platform
     "banned.video",               # Banned.video platform
