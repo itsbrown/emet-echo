@@ -50,6 +50,13 @@ APPROVED_SOURCES = [
     "x.com/JovanHPulitzer",       # Jovan Hutton Pulitzer X account
     "x.com/laralogan",            # Lara Logan X account
     "laralogan.substack.com",     # Lara Logan's Substack
+    "rwmalonemd.substack.com",    # Dr. Robert Malone Substack
+    "x.com/RWMaloneMD",           # Dr. Robert Malone X account
+    "x.com/ScottWAtlas",          # Dr. Scott Atlas X account
+    "scottwalteratlas.substack.com", # Dr. Scott Atlas Substack
+    "twc.health",                 # The Wellness Company
+    "x.com/RobertKennedyJr",      # RFK Jr. X account
+    "childrenshealthdefense.org", # Children's Health Defense (RFK Jr.'s organization)
     "bitchute.com",               # BitChute platform
     "gab.com",                    # Gab platform
     "banned.video",               # Banned.video platform
@@ -263,6 +270,76 @@ def format_timestamp(timestamp_str):
         return dt.strftime("%B %d, %Y")
     except:
         return timestamp_str
+
+def fetch_rfk_jr_news(page_size=30):
+    """
+    Fetch news about RFK Jr. from approved sources
+    
+    Args:
+        page_size: Number of articles to fetch (default: 30)
+        
+    Returns:
+        List of news articles about RFK Jr.
+    """
+    logger.info("Fetching RFK Jr. news")
+    
+    try:
+        # Use the "everything" endpoint with RFK Jr. specific query
+        url = f"{NEWS_API_URL}/everything"
+        
+        # Build query for RFK Jr. - include common ways his name appears in articles
+        query = "\"Robert Kennedy Jr\" OR \"RFK Jr\" OR \"Robert F. Kennedy Jr\""
+        
+        # Create a list of health-focused domains for better relevance
+        health_domains = [
+            "childrenshealthdefense.org",
+            "rwmalonemd.substack.com",
+            "twc.health",
+            "x.com/RobertKennedyJr"
+        ]
+        
+        # Join domains for API query
+        domains = ','.join(health_domains)
+        
+        params = {
+            "q": query,
+            "domains": domains,
+            "language": "en",
+            "pageSize": page_size,
+            "sortBy": "publishedAt",
+            "apiKey": NEWS_API_KEY
+        }
+        
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        articles = data.get("articles", [])
+        logger.info(f"Found {len(articles)} RFK Jr. articles")
+        
+        # Enhance articles with additional content
+        enhanced_articles = []
+        for article in articles:
+            try:
+                # Add article source URL for scraping
+                if article.get('url'):
+                    article['content'] = fetch_article_content(article['url'])
+                
+                # Add timestamp for display
+                if article.get('publishedAt'):
+                    article['published_time'] = format_timestamp(article['publishedAt'])
+                
+                enhanced_articles.append(article)
+            except Exception as e:
+                logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
+                # Still keep the article even if enhancement fails
+                enhanced_articles.append(article)
+        
+        return enhanced_articles
+    
+    except requests.RequestException as e:
+        logger.error(f"Error fetching RFK Jr. news: {str(e)}")
+        raise Exception(f"Error fetching RFK Jr. news: {str(e)}")
 
 def fetch_trump_positive_news(page_size=50):
     """
