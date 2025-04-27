@@ -93,6 +93,40 @@ def is_approved_source(article):
             
     return False
 
+def is_sports_content(article):
+    """
+    Check if an article is sports-related content
+    
+    Args:
+        article: Article object from NewsAPI
+        
+    Returns:
+        Boolean indicating if the article is about sports
+    """
+    if not article:
+        return False
+        
+    # Get title and description (lowercase for case-insensitive matching)
+    title = article.get('title', '').lower()
+    description = article.get('description', '').lower()
+    
+    # List of sports-related keywords to filter out
+    sports_keywords = [
+        'sports', 'sport', 'nfl', 'mlb', 'nba', 'nhl', 'football', 'baseball', 
+        'basketball', 'hockey', 'soccer', 'tennis', 'golf', 'racing', 'olympic',
+        'olympics', 'athlete', 'tournament', 'championship', 'playoffs', 'game',
+        'match', 'stadium', 'coach', 'player', 'team', 'boxing', 'ufc', 'nascar',
+        'wrestl', 'scoring', 'score', 'scored', 'draft', 'league', 'fantasy',
+        'scores', 'betting', 'bet', 'odds', 'sports betting'
+    ]
+    
+    # Check if any sports keyword is in the title or description
+    for keyword in sports_keywords:
+        if keyword in title or keyword in description:
+            return True
+            
+    return False
+
 def fetch_news(country="us", category="general", page_size=100):
     """
     Fetch trending news from NewsAPI
@@ -138,6 +172,11 @@ def fetch_news(country="us", category="general", page_size=100):
         # Enhance articles with additional content from original source
         enhanced_articles = []
         for article in articles:
+            # Skip sports-related content
+            if is_sports_content(article):
+                logger.debug(f"Skipping sports content: {article.get('title')}")
+                continue
+                
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
@@ -153,6 +192,7 @@ def fetch_news(country="us", category="general", page_size=100):
                 # Still keep the article even if enhancement fails
                 enhanced_articles.append(article)
         
+        logger.info(f"Returning {len(enhanced_articles)} articles after filtering out sports content")
         return enhanced_articles
     
     except requests.RequestException as e:
