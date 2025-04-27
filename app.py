@@ -195,8 +195,38 @@ def index():
         logger.error(f"Error loading articles from database: {str(e)}")
         articles = news_data["trending"]
     
+    # Organize articles by category for easier template rendering
+    categorized_articles = {
+        'politics': [],
+        'business': [],
+        'health': [],
+        'general': []
+    }
+    
+    # Categorize articles
+    for article in articles:
+        category = article.get('category', '')
+        if not category:
+            # Try to determine category from source or title
+            title_lower = article.get('title', '').lower()
+            if any(term in title_lower for term in ['economy', 'market', 'stock', 'inflation', 'jobs']):
+                category = 'business'
+            elif any(term in title_lower for term in ['politics', 'biden', 'trump', 'election', 'congress']):
+                category = 'politics'
+            elif any(term in title_lower for term in ['health', 'vaccine', 'medical', 'doctor', 'hospital']):
+                category = 'health'
+            else:
+                category = 'general'
+        
+        # Add to appropriate category
+        if category in categorized_articles:
+            categorized_articles[category].append(article)
+        else:
+            categorized_articles['general'].append(article)
+    
     return render_template('index.html', 
-                          articles=articles, 
+                          articles=articles,
+                          categorized_articles=categorized_articles,
                           last_updated=formatted_time,
                           search_query=None)
 
