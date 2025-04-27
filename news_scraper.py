@@ -255,7 +255,16 @@ def search_news(query, language="en", page_size=100):
         
         # Enhance articles with additional content
         enhanced_articles = []
+        articles_count = len(articles)
+        filtered_count = 0
+        
         for article in articles:
+            # Skip sports-related content
+            if is_sports_content(article):
+                logger.debug(f"Skipping sports content from search: {article.get('title')}")
+                filtered_count += 1
+                continue
+                
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
@@ -271,6 +280,7 @@ def search_news(query, language="en", page_size=100):
                 # Still keep the article even if enhancement fails
                 enhanced_articles.append(article)
         
+        logger.info(f"Returning {len(enhanced_articles)} search results after filtering out {filtered_count} sports articles")
         return enhanced_articles
     
     except requests.RequestException as e:
@@ -359,7 +369,15 @@ def fetch_rfk_jr_news(page_size=30):
         
         # Enhance articles with additional content
         enhanced_articles = []
+        filtered_count = 0
+        
         for article in articles:
+            # Skip sports-related content
+            if is_sports_content(article):
+                logger.debug(f"Skipping sports content from RFK Jr. news: {article.get('title')}")
+                filtered_count += 1
+                continue
+                
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
@@ -374,6 +392,8 @@ def fetch_rfk_jr_news(page_size=30):
                 logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
                 # Still keep the article even if enhancement fails
                 enhanced_articles.append(article)
+                
+        logger.info(f"Returning {len(enhanced_articles)} RFK Jr. articles after filtering out {filtered_count} sports articles")
         
         return enhanced_articles
     
@@ -425,7 +445,15 @@ def fetch_trump_positive_news(page_size=50):
         
         # Enhance articles with additional content
         enhanced_articles = []
+        filtered_count = 0
+        
         for article in articles:
+            # Skip sports-related content
+            if is_sports_content(article):
+                logger.debug(f"Skipping sports content from Trump news: {article.get('title')}")
+                filtered_count += 1
+                continue
+                
             try:
                 # Add article source URL for scraping
                 if article.get('url'):
@@ -440,6 +468,8 @@ def fetch_trump_positive_news(page_size=50):
                 logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
                 # Still keep the article even if enhancement fails
                 enhanced_articles.append(article)
+                
+        logger.info(f"Returning {len(enhanced_articles)} Trump articles after filtering out {filtered_count} sports articles")
         
         return enhanced_articles
     
