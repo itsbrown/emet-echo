@@ -624,6 +624,69 @@ def page_not_found(e):
 def server_error(e):
     return render_template('error.html', error="Server error occurred"), 500
 
+@app.route('/rfk-jr')
+def rfk_jr_news():
+    """Display news about RFK Jr. and health topics from trusted sources"""
+    try:
+        # Get existing articles related to RFK Jr.
+        from models import Article
+        
+        # Query for RFK Jr. related articles
+        rfk_articles = Article.query.filter(
+            (Article.content.ilike('%RFK%')) | 
+            (Article.content.ilike('%Robert Kennedy%')) |
+            (Article.content.ilike('%Kennedy Jr%')) |
+            (Article.source_name.ilike('%children%health%'))
+        ).order_by(Article.published_at.desc()).limit(20).all()
+        
+        # If we don't have enough RFK Jr. articles in the database, fetch new ones
+        if len(rfk_articles) < 5:
+            # Import here to avoid circular import
+            from news_scraper import fetch_rfk_jr_news
+            
+            # Fetch RFK Jr. news
+            articles = fetch_rfk_jr_news()
+            
+            # Store in database for persistence
+            for article_data in articles:
+                # Check if article already exists
+                existing = Article.query.filter_by(url=article_data.get('url', '')).first()
+                if not existing:
+                    # Create new article
+                    new_article = Article(
+                        title=article_data.get('title', 'No Title'),
+                        url=article_data.get('url', ''),
+                        source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
+                        source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
+                        published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
+                        author=article_data.get('author', ''),
+                        description=article_data.get('description', ''),
+                        content=article_data.get('content', ''),
+                        summary=generate_summary(article_data.get('content', '')),
+                        url_to_image=article_data.get('urlToImage', ''),
+                        category='health',
+                        source_type='independent'
+                    )
+                    db.session.add(new_article)
+            
+            db.session.commit()
+            
+            # Get the articles we just added
+            rfk_articles = Article.query.filter(
+                (Article.content.ilike('%RFK%')) | 
+                (Article.content.ilike('%Robert Kennedy%')) |
+                (Article.content.ilike('%Kennedy Jr%')) |
+                (Article.source_name.ilike('%children%health%'))
+            ).order_by(Article.published_at.desc()).limit(20).all()
+        
+        # Render template with articles
+        return render_template('rfk_jr.html', articles=rfk_articles)
+    
+    except Exception as e:
+        logger.error(f"Error displaying RFK Jr. news: {str(e)}")
+        flash("Error fetching RFK Jr. news. Please try again later.", "danger")
+        return redirect(url_for('index'))
+
 @app.route('/suggest-source', methods=['GET', 'POST'])
 def suggest_source():
     """

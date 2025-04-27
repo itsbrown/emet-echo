@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="display-5 mb-3">
+                <i class="bi bi-check-circle text-success me-2"></i>
+                RFK Jr. Health News
+            </h1>
+            <p class="lead text-muted">
+                Focused insights and updates from Robert F. Kennedy Jr. and trusted health experts on vaccine safety, environmental health, and medical freedom.
+            </p>
+        </div>
+        <div class="col-lg-4 text-end">
+            <button class="btn btn-outline-primary" onclick="refreshNews()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Main articles -->
+            {% if articles %}
+                {% for article in articles %}
+                <div class="card mb-4 shadow border-0 hover-shadow">
+                    <div class="row g-0">
+                        {% if article.url_to_image %}
+                        <div class="col-md-4">
+                            <div class="ratio ratio-16x9 h-100">
+                                <img src="{{ article.url_to_image }}" class="img-fluid rounded-start object-fit-cover h-100" alt="{{ article.title }}" loading="lazy">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                        {% else %}
+                        <div class="col-12">
+                        {% endif %}
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>
+                                        <span class="badge bg-success">RFK Jr.</span>
+                                        <span class="badge bg-primary ms-1">Health</span>
+                                    </div>
+                                    <small class="text-muted">{{ article.published_at.strftime('%B %d, %Y') if article.published_at else 'Date unknown' }}</small>
+                                </div>
+                                <h5 class="card-title">{{ article.title }}</h5>
+                                <p class="card-text">{{ article.description or (article.content|truncate(150) if article.content else 'No description available') }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{{ url_for('article_detail', article_url=article.url|urlencode) }}" class="btn btn-sm btn-outline-primary">Read More</a>
+                                    <div class="share-buttons">
+                                        <button class="btn btn-sm btn-outline-secondary share-button" 
+                                                data-url="{{ article.url }}" 
+                                                data-title="{{ article.title }}" 
+                                                data-summary="{{ article.summary }}">
+                                            <i class="bi bi-share me-1"></i> Share
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="card-text mt-2"><small class="text-muted">Source: {{ article.source_name }}</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    No RFK Jr. health news articles available at the moment. Please check back later.
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Sidebar with featured content -->
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">About RFK Jr.</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="https://childrenshealthdefense.org/wp-content/uploads/RFK-Jr-240x300.jpg" class="img-fluid rounded" alt="Robert F. Kennedy Jr." style="max-height: 200px;">
+                    </div>
+                    <p>Robert F. Kennedy Jr. is the founder of Children's Health Defense, an organization focused on vaccine safety, children's health, and environmental issues.</p>
+                    <p>Following in his family's tradition of public service, he has focused his career on advocating for environmental and health-related causes.</p>
+                    <div class="text-center">
+                        <a href="https://childrenshealthdefense.org/" class="btn btn-sm btn-outline-success" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Visit Children's Health Defense
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Health Sources</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <a href="https://rwmalonemd.substack.com/" target="_blank" class="text-decoration-none">Dr. Robert Malone</a>
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <a href="https://scottwalteratlas.substack.com/" target="_blank" class="text-decoration-none">Dr. Scott Atlas</a>
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <a href="https://www.twc.health/" target="_blank" class="text-decoration-none">The Wellness Company</a>
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <a href="https://childrenshealthdefense.org/" target="_blank" class="text-decoration-none">Children's Health Defense</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
