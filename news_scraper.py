@@ -283,8 +283,47 @@ def fetch_rfk_jr_news(page_size=30):
     """
     logger.info("Fetching RFK Jr. news")
     
+    all_articles = []
+    
     try:
-        # Use the "everything" endpoint with RFK Jr. specific query
+        # APPROACH 1: Use the "everything" endpoint with RFK Jr. query and health keywords
+        url = f"{NEWS_API_URL}/everything"
+        
+        # Create query for RFK Jr. with different name formats
+        query = '"RFK Jr." OR "Robert Kennedy Jr" OR "Robert F. Kennedy Jr." OR "Kennedy health" OR "Kennedy freedom"'
+        
+        # Add health-related keywords to focus on health topics
+        health_keywords = ["health", "vaccine", "medical freedom", "nutrition", "wellness", 
+                           "health freedom", "transparency", "informed consent", "medical choice"]
+        
+        # Add health keywords to query
+        health_query_parts = [f'"{keyword}"' for keyword in health_keywords]
+        health_query = " OR ".join(health_query_parts)
+        
+        # Combine the queries
+        combined_query = f"({query}) AND ({health_query})"
+        
+        params = {
+            "q": combined_query,
+            "language": "en",
+            "pageSize": page_size // 2,  # Split page size between the two approaches
+            "sortBy": "publishedAt",
+            "apiKey": NEWS_API_KEY
+        }
+        
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        articles1 = data.get("articles", [])
+        logger.info(f"Found {len(articles1)} RFK Jr. health-related articles")
+        all_articles.extend(articles1)
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching RFK Jr. news (approach 1): {str(e)}")
+    
+    try:
+        # APPROACH 2: Use the "everything" endpoint with RFK Jr. specific query for health domains
         url = f"{NEWS_API_URL}/everything"
         
         # Build query for RFK Jr. - include common ways his name appears in articles
@@ -294,8 +333,7 @@ def fetch_rfk_jr_news(page_size=30):
         health_domains = [
             "childrenshealthdefense.org",
             "rwmalonemd.substack.com",
-            "twc.health",
-            "x.com/RobertKennedyJr"
+            "twc.health"
         ]
         
         # Join domains for API query
@@ -305,7 +343,7 @@ def fetch_rfk_jr_news(page_size=30):
             "q": query,
             "domains": domains,
             "language": "en",
-            "pageSize": page_size,
+            "pageSize": page_size // 2,  # Split page size between the two approaches
             "sortBy": "publishedAt",
             "apiKey": NEWS_API_KEY
         }
@@ -314,32 +352,43 @@ def fetch_rfk_jr_news(page_size=30):
         response.raise_for_status()
         
         data = response.json()
-        articles = data.get("articles", [])
-        logger.info(f"Found {len(articles)} RFK Jr. articles")
+        articles2 = data.get("articles", [])
+        logger.info(f"Found {len(articles2)} RFK Jr. articles from health domains")
+        all_articles.extend(articles2)
         
-        # Enhance articles with additional content
-        enhanced_articles = []
-        for article in articles:
-            try:
-                # Add article source URL for scraping
-                if article.get('url'):
-                    article['content'] = fetch_article_content(article['url'])
-                
-                # Add timestamp for display
-                if article.get('publishedAt'):
-                    article['published_time'] = format_timestamp(article['publishedAt'])
-                
-                enhanced_articles.append(article)
-            except Exception as e:
-                logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
-                # Still keep the article even if enhancement fails
-                enhanced_articles.append(article)
-        
-        return enhanced_articles
-    
     except requests.RequestException as e:
-        logger.error(f"Error fetching RFK Jr. news: {str(e)}")
-        raise Exception(f"Error fetching RFK Jr. news: {str(e)}")
+        logger.error(f"Error fetching RFK Jr. news (approach 2): {str(e)}")
+    
+    # Deduplicate articles based on URL
+    unique_articles = []
+    seen_urls = set()
+    
+    for article in all_articles:
+        if article.get('url') and article['url'] not in seen_urls:
+            seen_urls.add(article['url'])
+            unique_articles.append(article)
+    
+    logger.info(f"Total unique RFK Jr. articles: {len(unique_articles)}")
+    
+    # Enhance articles with additional content
+    enhanced_articles = []
+    for article in unique_articles:
+        try:
+            # Add article source URL for scraping
+            if article.get('url'):
+                article['content'] = fetch_article_content(article['url'])
+            
+            # Add timestamp for display
+            if article.get('publishedAt'):
+                article['published_time'] = format_timestamp(article['publishedAt'])
+            
+            enhanced_articles.append(article)
+        except Exception as e:
+            logger.error(f"Error enhancing article {article.get('title')}: {str(e)}")
+            # Still keep the article even if enhancement fails
+            enhanced_articles.append(article)
+    
+    return enhanced_articles
 
 def fetch_trump_positive_news(page_size=50):
     """
