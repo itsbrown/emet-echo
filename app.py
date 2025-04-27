@@ -157,10 +157,72 @@ def index():
     last_updated = news_data["last_updated"]
     formatted_time = last_updated.strftime("%Y-%m-%d %H:%M:%S") if last_updated else "Never"
     
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    category_filter = request.args.get('category', None)
+    per_page = 12  # Number of articles per page/section
+    
     try:
         # Get articles from database (most recent first)
         from models import Article
-        db_articles = Article.query.order_by(Article.published_at.desc()).limit(50).all()
+        
+        # Base query
+        base_query = Article.query.order_by(Article.published_at.desc())
+        
+        # Apply category filter if provided
+        if category_filter:
+            if category_filter == 'general':
+                # For general, include items with no category or general category
+                base_query = base_query.filter(
+                    db.or_(
+                        Article.category == 'general',
+                        Article.category == None,
+                        Article.category == ''
+                    )
+                )
+            else:
+                # For specific categories
+                base_query = base_query.filter(Article.category == category_filter)
+            
+            # Calculate offset for pagination
+            offset = (page - 1) * per_page
+            
+            # Get paginated articles for the specific category
+            db_articles = base_query.offset(offset).limit(per_page).all()
+            
+            # Convert to dictionary format for API
+            articles = []
+            for article in db_articles:
+                article_dict = {
+                    'title': article.title,
+                    'url': article.url,
+                    'source': {'name': article.source_name},
+                    'publishedAt': article.published_at.isoformat() if article.published_at else '',
+                    'author': article.author,
+                    'description': article.description,
+                    'content': article.content,
+                    'summary': article.summary,
+                    'urlToImage': article.url_to_image,
+                    'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
+                    'source_type': article.source_type,
+                    'category': article.category or 'general'
+                }
+                articles.append(article_dict)
+            
+            # For pagination requests, just return the JSON response
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'articles': articles,
+                    'more_available': len(articles) == per_page
+                })
+            
+            # For normal page loads, redirect back to homepage with new articles loaded
+            if page > 1:
+                flash(f"Loaded older articles for {category_filter} category", "info")
+                return redirect(url_for('index'))
+        
+        # Get initial set of articles for all categories
+        db_articles = base_query.limit(100).all()
         
         # If we have articles in the database, convert them to the expected format
         if db_articles:
@@ -177,7 +239,8 @@ def index():
                     'summary': article.summary,
                     'urlToImage': article.url_to_image,
                     'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
-                    'source_type': article.source_type
+                    'source_type': article.source_type,
+                    'category': article.category or 'general'
                 }
                 articles.append(article_dict)
             

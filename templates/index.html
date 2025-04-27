@@ -72,6 +72,7 @@
     <!-- Category Rows -->
     {% if articles %}
         <!-- Politics Section (First) -->
+        {% if categorized_articles['politics'] %}
         <div class="row mb-4">
             <div class="col-12">
                 <h3 class="border-start border-primary border-5 ps-3">Politics</h3>
@@ -138,12 +139,22 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        <!-- Load More Button -->
+                        <div class="col-auto d-flex align-items-center">
+                            <a href="{{ url_for('index', category='politics', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                                <span class="d-none d-md-inline ms-2">Load More</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
         
         <!-- Business Section -->
+        {% if categorized_articles['business'] %}
         <div class="row mb-4">
             <div class="col-12">
                 <h3 class="border-start border-success border-5 ps-3">Business & Economy</h3>
@@ -210,12 +221,22 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        <!-- Load More Button -->
+                        <div class="col-auto d-flex align-items-center">
+                            <a href="{{ url_for('index', category='business', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                                <span class="d-none d-md-inline ms-2">Load More</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
         
         <!-- Health Section -->
+        {% if categorized_articles['health'] %}
         <div class="row mb-4">
             <div class="col-12">
                 <h3 class="border-start border-danger border-5 ps-3">Health</h3>
@@ -282,12 +303,22 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        <!-- Load More Button -->
+                        <div class="col-auto d-flex align-items-center">
+                            <a href="{{ url_for('index', category='health', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                                <span class="d-none d-md-inline ms-2">Load More</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
         
         <!-- General Section -->
+        {% if categorized_articles['general'] %}
         <div class="row mb-4">
             <div class="col-12">
                 <h3 class="border-start border-info border-5 ps-3">Top Stories</h3>
@@ -354,10 +385,19 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        
+                        <!-- Load More Button -->
+                        <div class="col-auto d-flex align-items-center">
+                            <a href="{{ url_for('index', category='general', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                                <span class="d-none d-md-inline ms-2">Load More</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
     {% else %}
             <div class="col-12 text-center py-5">
                 <div class="mb-4">
