@@ -78,9 +78,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="submitter_email" class="form-label">Your Email</label>
+                            <label for="submitter_email" class="form-label">Your Email <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" id="submitter_email" name="submitter_email" 
-                                   value="{{ form_data.submitter_email if form_data else '' }}">
+                                   value="{{ form_data.submitter_email if form_data else '' }}" required>
                             <div class="form-text">We may contact you if we need additional information about your suggestion</div>
                         </div>
                         

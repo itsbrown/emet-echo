@@ -643,7 +643,7 @@ def suggest_source():
             reason = request.form.get('reason')
             
             # Validate required fields
-            if not all([name, url, source_type, reason]):
+            if not all([name, url, source_type, reason, submitter_email]):
                 flash("Please fill in all required fields", "danger")
                 return render_template('suggest_source.html', 
                                     form_data=request.form)
