@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+
+{% block title %}Suggest a News Source - Emet Echo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">
+                        <i class="bi bi-newspaper me-2"></i>
+                        Suggest a News Source
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Help us expand our collection of trusted news sources. Submit your favorite conservative or independent news sources that aren't funded by the government or Soros foundations and never pushed the Russia collusion narrative.
+                    </p>
+                    
+                    <div class="alert alert-info mb-4">
+                        <p class="mb-0">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            All submissions are reviewed by our team before being added to the platform. We prioritize sources that provide factual reporting and transparency about their funding.
+                        </p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('suggest_source') }}">
+                        <!-- Source Name -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Source Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ form_data.name if form_data else '' }}" required>
+                            <div class="form-text">Example: Tucker Carlson Network, Gateway Pundit, etc.</div>
+                        </div>
+                        
+                        <!-- Source URL -->
+                        <div class="mb-3">
+                            <label for="url" class="form-label">Source URL <span class="text-danger">*</span></label>
+                            <input type="url" class="form-control" id="url" name="url" 
+                                   value="{{ form_data.url if form_data else '' }}" required>
+                            <div class="form-text">Full URL including https:// (e.g., https://tuckercarlson.com)</div>
+                        </div>
+                        
+                        <!-- Source Type -->
+                        <div class="mb-3">
+                            <label for="source_type" class="form-label">Source Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="source_type" name="source_type" required>
+                                <option value="" selected disabled>-- Select source type --</option>
+                                <option value="conservative" {% if form_data and form_data.source_type == 'conservative' %}selected{% endif %}>Conservative</option>
+                                <option value="independent" {% if form_data and form_data.source_type == 'independent' %}selected{% endif %}>Independent</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ form_data.description if form_data else '' }}</textarea>
+                            <div class="form-text">Brief description of what this source covers or specializes in</div>
+                        </div>
+                        
+                        <!-- Reason -->
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Why should we add this source? <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" required>{{ form_data.reason if form_data else '' }}</textarea>
+                            <div class="form-text">Explain why this source meets our criteria and would be valuable to our community</div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Contact Information (Optional) -->
+                        <h5 class="mb-3">Your Information (Optional)</h5>
+                        
+                        <div class="mb-3">
+                            <label for="submitter_name" class="form-label">Your Name</label>
+                            <input type="text" class="form-control" id="submitter_name" name="submitter_name" 
+                                   value="{{ form_data.submitter_name if form_data else '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="submitter_email" class="form-label">Your Email</label>
+                            <input type="email" class="form-control" id="submitter_email" name="submitter_email" 
+                                   value="{{ form_data.submitter_email if form_data else '' }}">
+                            <div class="form-text">We may contact you if we need additional information about your suggestion</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send me-2"></i>
+                                Submit Suggestion
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Current Sources -->
+            <div class="card mt-5 shadow border-0">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="h5 mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        Currently Supported Sources
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Conservative Sources</h5>
+                            <ul class="list-group list-group-flush mb-4">
+                                <li class="list-group-item">Fox News</li>
+                                <li class="list-group-item">New York Post</li>
+                                <li class="list-group-item">Washington Times</li>
+                                <li class="list-group-item">The Epoch Times</li>
+                                <li class="list-group-item">Breitbart</li>
+                                <li class="list-group-item">Daily Wire</li>
+                                <li class="list-group-item">OANN</li>
+                                <li class="list-group-item">Newsmax</li>
+                                <li class="list-group-item">The Blaze</li>
+                                <li class="list-group-item">Western Journal</li>
+                                <li class="list-group-item">Daily Caller</li>
+                                <li class="list-group-item">Washington Examiner</li>
+                                <li class="list-group-item">The Spectator</li>
+                                <li class="list-group-item">Gateway Pundit</li>
+                                <li class="list-group-item">Red State</li>
+                                <li class="list-group-item">Citizen Free Press</li>
+                                <li class="list-group-item">100% Fed Up</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Independent Sources</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">Zero Hedge</li>
+                                <li class="list-group-item">Reason</li>
+                                <li class="list-group-item">The Hill</li>
+                                <li class="list-group-item">RealClearPolitics</li>
+                                <li class="list-group-item">Axios</li>
+                                <li class="list-group-item">The Intercept</li>
+                                <li class="list-group-item">Just The News</li>
+                                <li class="list-group-item">Substack</li>
+                                <li class="list-group-item">Ground News</li>
+                                <li class="list-group-item">Breaking Points</li>
+                                <li class="list-group-item">Rumble (Jovan Hutton Pulitzer)</li>
+                                <li class="list-group-item">Tucker Carlson Network</li>
+                                <li class="list-group-item">BitChute</li>
+                                <li class="list-group-item">Gab</li>
+                                <li class="list-group-item">Banned.video</li>
+                                <li class="list-group-item">FrankSpeech</li>
+                                <li class="list-group-item">Red Voice Media</li>
+                                <li class="list-group-item">War Room</li>
+                                <li class="list-group-item">107 Daily</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

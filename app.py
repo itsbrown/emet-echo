@@ -624,4 +624,57 @@ def page_not_found(e):
 def server_error(e):
     return render_template('error.html', error="Server error occurred"), 500
 
+@app.route('/suggest-source', methods=['GET', 'POST'])
+def suggest_source():
+    """
+    Allow users to suggest new independent news sources
+    """
+    from models import SuggestedNewsSource
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.form.get('name')
+            url = request.form.get('url')
+            description = request.form.get('description')
+            source_type = request.form.get('source_type')
+            submitter_name = request.form.get('submitter_name')
+            submitter_email = request.form.get('submitter_email')
+            reason = request.form.get('reason')
+            
+            # Validate required fields
+            if not all([name, url, source_type, reason]):
+                flash("Please fill in all required fields", "danger")
+                return render_template('suggest_source.html', 
+                                    form_data=request.form)
+            
+            # Create new suggestion
+            suggestion = SuggestedNewsSource(
+                name=name,
+                url=url,
+                description=description,
+                source_type=source_type,
+                submitter_name=submitter_name,
+                submitter_email=submitter_email,
+                reason=reason,
+                status='pending'
+            )
+            
+            # Save to database
+            db.session.add(suggestion)
+            db.session.commit()
+            
+            flash("Thank you! Your news source suggestion has been submitted for review.", "success")
+            return redirect(url_for('index'))
+            
+        except Exception as e:
+            logger.error(f"Error processing source suggestion: {str(e)}")
+            db.session.rollback()
+            flash("An error occurred. Please try again later.", "danger")
+            return render_template('suggest_source.html', 
+                                form_data=request.form)
+    
+    # GET request - show form
+    return render_template('suggest_source.html')
+
 

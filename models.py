@@ -120,3 +120,18 @@ class EmailSubscriber(db.Model):
     def set_content_types(self, types):
         """Set content types preferences from a list"""
         self.content_types = json.dumps(types)
+        
+class SuggestedNewsSource(db.Model):
+    """Model for user-suggested news sources"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    source_type = db.Column(db.String(50))  # 'conservative' or 'independent'
+    submitter_name = db.Column(db.String(100))
+    submitter_email = db.Column(db.String(255))
+    reason = db.Column(db.Text)  # Why this source should be included
+    status = db.Column(db.String(50), default='pending')  # 'pending', 'approved', 'rejected'
+    admin_notes = db.Column(db.Text)  # Admin notes on this suggestion
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

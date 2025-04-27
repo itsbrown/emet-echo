@@ -37,7 +37,25 @@ APPROVED_SOURCES = [
     "justthenews.com",
     "substack.com",
     "ground.news",
-    "breakingpoints.com"
+    "breakingpoints.com",
+    
+    # Additional Independent Sources
+    "rumble.com",                 # Rumble (Jovan Hutton Pulitzer and others)
+    "tuckercarlson.com",          # Tucker Carlson Network
+    "x.com/TuckerCarlson",        # Tucker Carlson X account
+    "x.com/JovanHPulitzer",       # Jovan Hutton Pulitzer X account
+    "bitchute.com",               # BitChute platform
+    "gab.com",                    # Gab platform
+    "banned.video",               # Banned.video platform
+    "frankspeech.com",            # FrankSpeech platform
+    "redvoicemedia.com",          # Red Voice Media
+    "thegatewaypundit.com",       # The Gateway Pundit
+    "redstate.com",               # Red State
+    "citizenfreepress.com",       # Citizen Free Press
+    "100percentfedup.com",        # 100% Fed Up
+    "emeralddb3.substack.com",    # Emerald Robinson's Substack
+    "warroom.org",                # War Room
+    "1a3t.short.gy"               # 107 Daily
 ]
 
 def is_approved_source(article):
