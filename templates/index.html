@@ -69,336 +69,66 @@
     </div>
     {% endif %}
     
-    <!-- Category Rows -->
-    {% if articles %}
-        <!-- Politics Section (First) -->
-        {% if categorized_articles['politics'] %}
-        <div class="row mb-4">
-            <div class="col-12">
-                <h3 class="border-start border-primary border-5 ps-3">Politics</h3>
-            </div>
-        </div>
-        
-        <div class="row category-row mb-5">
-            <div class="col-12">
-                <div class="article-carousel">
-                    <div class="row flex-nowrap overflow-auto pb-3">
-                        {% for article in categorized_articles['politics'] %}
-                            <div class="col-md-4 col-lg-3">
-                                <div class="card news-card h-100 mx-2">
-                                    <!-- Article Image -->
-                                    <div class="article-img-container position-relative">
-                                        {% if article.urlToImage %}
-                                            <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
-                                        {% else %}
-                                            <div class="img-placeholder">
-                                                <i class="bi bi-image"></i>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <!-- Source Badge -->
-                                        {% if article.source and article.source.name %}
-                                            <span class="badge source-badge">{{ article.source.name }}</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="card-body d-flex flex-column">
-                                        <!-- Published Date -->
-                                        {% if article.published_time %}
-                                            <small class="text-muted mb-2">{{ article.published_time }}</small>
-                                        {% endif %}
-                                        
-                                        <!-- Article Title -->
-                                        <h5 class="card-title truncate-2">{{ article.title }}</h5>
-                                        
-                                        <!-- AI Summary -->
-                                        <p class="card-text truncate-3 flex-grow-1">
-                                            {% if article.summary %}
-                                                {{ article.summary }}
-                                            {% else %}
-                                                No summary available.
-                                            {% endif %}
-                                        </p>
-                                        
-                                        <!-- Action Buttons -->
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                Read Original
-                                                <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                            </a>
-                                            
-                                            <button class="btn btn-sm btn-outline-secondary share-button" 
-                                                    data-url="{{ article.url }}" 
-                                                    data-title="{{ article.title }}"
-                                                    data-content="{{ article.description or article.summary }}">
-                                                <i class="bi bi-share"></i>
-                                                Share
-                                            </button>
-                                        </div>
-                                    </div>
+    <!-- Articles Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 news-grid">
+        {% if articles %}
+            {% for article in articles %}
+                <div class="col">
+                    <div class="card news-card h-100">
+                        <!-- Article Image -->
+                        <div class="article-img-container position-relative">
+                            {% if article.urlToImage %}
+                                <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
+                            {% else %}
+                                <div class="img-placeholder">
+                                    <i class="bi bi-image"></i>
                                 </div>
-                            </div>
-                        {% endfor %}
+                            {% endif %}
+                            
+                            <!-- Source Badge -->
+                            {% if article.source and article.source.name %}
+                                <span class="badge source-badge">{{ article.source.name }}</span>
+                            {% endif %}
+                        </div>
                         
-                        <!-- Load More Button -->
-                        <div class="col-auto d-flex align-items-center">
-                            <a href="{{ url_for('index', category='politics', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
-                                <i class="bi bi-arrow-right-circle-fill"></i>
-                                <span class="d-none d-md-inline ms-2">Load More</span>
-                            </a>
+                        <div class="card-body d-flex flex-column">
+                            <!-- Published Date -->
+                            {% if article.published_time %}
+                                <small class="text-muted mb-2">{{ article.published_time }}</small>
+                            {% endif %}
+                            
+                            <!-- Article Title -->
+                            <h5 class="card-title truncate-2">{{ article.title }}</h5>
+                            
+                            <!-- AI Summary -->
+                            <p class="card-text truncate-3 flex-grow-1">
+                                {% if article.summary %}
+                                    {{ article.summary }}
+                                {% else %}
+                                    No summary available.
+                                {% endif %}
+                            </p>
+                            
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    Read Original
+                                    <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                </a>
+                                
+                                <button class="btn btn-sm btn-outline-secondary share-button" 
+                                        data-url="{{ article.url }}" 
+                                        data-title="{{ article.title }}"
+                                        data-content="{{ article.description or article.summary }}">
+                                    <i class="bi bi-share"></i>
+                                    Share
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Business Section -->
-        {% if categorized_articles['business'] %}
-        <div class="row mb-4">
-            <div class="col-12">
-                <h3 class="border-start border-success border-5 ps-3">Business & Economy</h3>
-            </div>
-        </div>
-        
-        <div class="row category-row mb-5">
-            <div class="col-12">
-                <div class="article-carousel">
-                    <div class="row flex-nowrap overflow-auto pb-3">
-                        {% for article in categorized_articles['business'] %}
-                            <div class="col-md-4 col-lg-3">
-                                <div class="card news-card h-100 mx-2">
-                                    <!-- Article Image -->
-                                    <div class="article-img-container position-relative">
-                                        {% if article.urlToImage %}
-                                            <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
-                                        {% else %}
-                                            <div class="img-placeholder">
-                                                <i class="bi bi-image"></i>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <!-- Source Badge -->
-                                        {% if article.source and article.source.name %}
-                                            <span class="badge source-badge">{{ article.source.name }}</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="card-body d-flex flex-column">
-                                        <!-- Published Date -->
-                                        {% if article.published_time %}
-                                            <small class="text-muted mb-2">{{ article.published_time }}</small>
-                                        {% endif %}
-                                        
-                                        <!-- Article Title -->
-                                        <h5 class="card-title truncate-2">{{ article.title }}</h5>
-                                        
-                                        <!-- AI Summary -->
-                                        <p class="card-text truncate-3 flex-grow-1">
-                                            {% if article.summary %}
-                                                {{ article.summary }}
-                                            {% else %}
-                                                No summary available.
-                                            {% endif %}
-                                        </p>
-                                        
-                                        <!-- Action Buttons -->
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                Read Original
-                                                <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                            </a>
-                                            
-                                            <button class="btn btn-sm btn-outline-secondary share-button" 
-                                                    data-url="{{ article.url }}" 
-                                                    data-title="{{ article.title }}"
-                                                    data-content="{{ article.description or article.summary }}">
-                                                <i class="bi bi-share"></i>
-                                                Share
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                        
-                        <!-- Load More Button -->
-                        <div class="col-auto d-flex align-items-center">
-                            <a href="{{ url_for('index', category='business', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
-                                <i class="bi bi-arrow-right-circle-fill"></i>
-                                <span class="d-none d-md-inline ms-2">Load More</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Health Section -->
-        {% if categorized_articles['health'] %}
-        <div class="row mb-4">
-            <div class="col-12">
-                <h3 class="border-start border-danger border-5 ps-3">Health</h3>
-            </div>
-        </div>
-        
-        <div class="row category-row mb-5">
-            <div class="col-12">
-                <div class="article-carousel">
-                    <div class="row flex-nowrap overflow-auto pb-3">
-                        {% for article in categorized_articles['health'] %}
-                            <div class="col-md-4 col-lg-3">
-                                <div class="card news-card h-100 mx-2">
-                                    <!-- Article Image -->
-                                    <div class="article-img-container position-relative">
-                                        {% if article.urlToImage %}
-                                            <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
-                                        {% else %}
-                                            <div class="img-placeholder">
-                                                <i class="bi bi-image"></i>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <!-- Source Badge -->
-                                        {% if article.source and article.source.name %}
-                                            <span class="badge source-badge">{{ article.source.name }}</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="card-body d-flex flex-column">
-                                        <!-- Published Date -->
-                                        {% if article.published_time %}
-                                            <small class="text-muted mb-2">{{ article.published_time }}</small>
-                                        {% endif %}
-                                        
-                                        <!-- Article Title -->
-                                        <h5 class="card-title truncate-2">{{ article.title }}</h5>
-                                        
-                                        <!-- AI Summary -->
-                                        <p class="card-text truncate-3 flex-grow-1">
-                                            {% if article.summary %}
-                                                {{ article.summary }}
-                                            {% else %}
-                                                No summary available.
-                                            {% endif %}
-                                        </p>
-                                        
-                                        <!-- Action Buttons -->
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                Read Original
-                                                <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                            </a>
-                                            
-                                            <button class="btn btn-sm btn-outline-secondary share-button" 
-                                                    data-url="{{ article.url }}" 
-                                                    data-title="{{ article.title }}"
-                                                    data-content="{{ article.description or article.summary }}">
-                                                <i class="bi bi-share"></i>
-                                                Share
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                        
-                        <!-- Load More Button -->
-                        <div class="col-auto d-flex align-items-center">
-                            <a href="{{ url_for('index', category='health', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
-                                <i class="bi bi-arrow-right-circle-fill"></i>
-                                <span class="d-none d-md-inline ms-2">Load More</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- General Section -->
-        {% if categorized_articles['general'] %}
-        <div class="row mb-4">
-            <div class="col-12">
-                <h3 class="border-start border-info border-5 ps-3">Top Stories</h3>
-            </div>
-        </div>
-        
-        <div class="row category-row mb-5">
-            <div class="col-12">
-                <div class="article-carousel">
-                    <div class="row flex-nowrap overflow-auto pb-3">
-                        {% for article in categorized_articles['general'] %}
-                            <div class="col-md-4 col-lg-3">
-                                <div class="card news-card h-100 mx-2">
-                                    <!-- Article Image -->
-                                    <div class="article-img-container position-relative">
-                                        {% if article.urlToImage %}
-                                            <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
-                                        {% else %}
-                                            <div class="img-placeholder">
-                                                <i class="bi bi-image"></i>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <!-- Source Badge -->
-                                        {% if article.source and article.source.name %}
-                                            <span class="badge source-badge">{{ article.source.name }}</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="card-body d-flex flex-column">
-                                        <!-- Published Date -->
-                                        {% if article.published_time %}
-                                            <small class="text-muted mb-2">{{ article.published_time }}</small>
-                                        {% endif %}
-                                        
-                                        <!-- Article Title -->
-                                        <h5 class="card-title truncate-2">{{ article.title }}</h5>
-                                        
-                                        <!-- AI Summary -->
-                                        <p class="card-text truncate-3 flex-grow-1">
-                                            {% if article.summary %}
-                                                {{ article.summary }}
-                                            {% else %}
-                                                No summary available.
-                                            {% endif %}
-                                        </p>
-                                        
-                                        <!-- Action Buttons -->
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                Read Original
-                                                <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                            </a>
-                                            
-                                            <button class="btn btn-sm btn-outline-secondary share-button" 
-                                                    data-url="{{ article.url }}" 
-                                                    data-title="{{ article.title }}"
-                                                    data-content="{{ article.description or article.summary }}">
-                                                <i class="bi bi-share"></i>
-                                                Share
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                        
-                        <!-- Load More Button -->
-                        <div class="col-auto d-flex align-items-center">
-                            <a href="{{ url_for('index', category='general', page=2) }}" class="btn btn-lg btn-outline-secondary load-more-btn">
-                                <i class="bi bi-arrow-right-circle-fill"></i>
-                                <span class="d-none d-md-inline ms-2">Load More</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    {% else %}
+            {% endfor %}
+        {% else %}
             <div class="col-12 text-center py-5">
                 <div class="mb-4">
                     <i class="bi bi-newspaper" style="font-size: 4rem;"></i>

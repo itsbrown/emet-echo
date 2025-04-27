@@ -157,72 +157,10 @@ def index():
     last_updated = news_data["last_updated"]
     formatted_time = last_updated.strftime("%Y-%m-%d %H:%M:%S") if last_updated else "Never"
     
-    # Get pagination parameters
-    page = request.args.get('page', 1, type=int)
-    category_filter = request.args.get('category', None)
-    per_page = 12  # Number of articles per page/section
-    
     try:
         # Get articles from database (most recent first)
         from models import Article
-        
-        # Base query
-        base_query = Article.query.order_by(Article.published_at.desc())
-        
-        # Apply category filter if provided
-        if category_filter:
-            if category_filter == 'general':
-                # For general, include items with no category or general category
-                base_query = base_query.filter(
-                    db.or_(
-                        Article.category == 'general',
-                        Article.category == None,
-                        Article.category == ''
-                    )
-                )
-            else:
-                # For specific categories
-                base_query = base_query.filter(Article.category == category_filter)
-            
-            # Calculate offset for pagination
-            offset = (page - 1) * per_page
-            
-            # Get paginated articles for the specific category
-            db_articles = base_query.offset(offset).limit(per_page).all()
-            
-            # Convert to dictionary format for API
-            articles = []
-            for article in db_articles:
-                article_dict = {
-                    'title': article.title,
-                    'url': article.url,
-                    'source': {'name': article.source_name},
-                    'publishedAt': article.published_at.isoformat() if article.published_at else '',
-                    'author': article.author,
-                    'description': article.description,
-                    'content': article.content,
-                    'summary': article.summary,
-                    'urlToImage': article.url_to_image,
-                    'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
-                    'source_type': article.source_type,
-                    'category': article.category or 'general'
-                }
-                articles.append(article_dict)
-            
-            # For pagination requests, just return the JSON response
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'articles': articles,
-                    'more_available': len(articles) == per_page
-                })
-            
-            # For normal page loads, redirect back to homepage with new articles loaded
-            if page > 1:
-                flash(f"Loaded older articles for {category_filter} category", "info")
-                return redirect(url_for('index'))
-        
-        # Get initial set of articles for all categories
-        db_articles = base_query.limit(100).all()
+        db_articles = Article.query.order_by(Article.published_at.desc()).limit(50).all()
         
         # If we have articles in the database, convert them to the expected format
         if db_articles:
@@ -239,8 +177,7 @@ def index():
                     'summary': article.summary,
                     'urlToImage': article.url_to_image,
                     'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
-                    'source_type': article.source_type,
-                    'category': article.category or 'general'
+                    'source_type': article.source_type
                 }
                 articles.append(article_dict)
             
@@ -258,38 +195,8 @@ def index():
         logger.error(f"Error loading articles from database: {str(e)}")
         articles = news_data["trending"]
     
-    # Organize articles by category for easier template rendering
-    categorized_articles = {
-        'politics': [],
-        'business': [],
-        'health': [],
-        'general': []
-    }
-    
-    # Categorize articles
-    for article in articles:
-        category = article.get('category', '')
-        if not category:
-            # Try to determine category from source or title
-            title_lower = article.get('title', '').lower()
-            if any(term in title_lower for term in ['economy', 'market', 'stock', 'inflation', 'jobs']):
-                category = 'business'
-            elif any(term in title_lower for term in ['politics', 'biden', 'trump', 'election', 'congress']):
-                category = 'politics'
-            elif any(term in title_lower for term in ['health', 'vaccine', 'medical', 'doctor', 'hospital']):
-                category = 'health'
-            else:
-                category = 'general'
-        
-        # Add to appropriate category
-        if category in categorized_articles:
-            categorized_articles[category].append(article)
-        else:
-            categorized_articles['general'].append(article)
-    
     return render_template('index.html', 
-                          articles=articles,
-                          categorized_articles=categorized_articles,
+                          articles=articles, 
                           last_updated=formatted_time,
                           search_query=None)
 
@@ -443,38 +350,8 @@ def search():
     
     last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Organize articles by category for consistency with homepage
-    categorized_articles = {
-        'politics': [],
-        'business': [],
-        'health': [],
-        'general': []
-    }
-    
-    # Categorize articles
-    for article in articles:
-        category = article.get('category', '')
-        if not category:
-            # Try to determine category from source or title
-            title_lower = article.get('title', '').lower()
-            if any(term in title_lower for term in ['economy', 'market', 'stock', 'inflation', 'jobs']):
-                category = 'business'
-            elif any(term in title_lower for term in ['politics', 'biden', 'trump', 'election', 'congress']):
-                category = 'politics'
-            elif any(term in title_lower for term in ['health', 'vaccine', 'medical', 'doctor', 'hospital']):
-                category = 'health'
-            else:
-                category = 'general'
-        
-        # Add to appropriate category
-        if category in categorized_articles:
-            categorized_articles[category].append(article)
-        else:
-            categorized_articles['general'].append(article)
-            
     return render_template('index.html', 
-                          articles=articles,
-                          categorized_articles=categorized_articles,
+                          articles=articles, 
                           last_updated=last_updated,
                           search_query=query)
 
@@ -799,83 +676,5 @@ def suggest_source():
     
     # GET request - show form
     return render_template('suggest_source.html')
-
-@app.route('/rfk-jr')
-def rfk_jr_news():
-    """Display news about RFK Jr. focused on health topics"""
-    try:
-        # Get existing articles that mention RFK Jr.
-        from models import Article
-        
-        # Find articles that mention RFK Jr. in different formats
-        rfk_articles = Article.query.filter(
-            db.or_(
-                Article.title.ilike('%rfk%'),
-                Article.title.ilike('%kennedy jr%'), 
-                Article.title.ilike('%robert kennedy%'),
-                Article.content.ilike('%rfk jr%'),
-                Article.content.ilike('%robert kennedy jr%')
-            )
-        ).order_by(Article.published_at.desc()).limit(20).all()
-        
-        # If we don't have enough articles, fetch more
-        if len(rfk_articles) < 10:
-            from news_scraper import fetch_rfk_jr_news
-            
-            # Fetch RFK Jr. news
-            fetched_articles = fetch_rfk_jr_news()
-            
-            # Process and store fetched articles
-            for article_data in fetched_articles:
-                # Check if article already exists
-                existing = Article.query.filter_by(url=article_data.get('url', '')).first()
-                if not existing:
-                    # Create summary for the article
-                    summary = None
-                    if article_data.get('content'):
-                        try:
-                            summary = generate_summary(article_data.get('content', ''), style="journalist")
-                        except Exception as e:
-                            logger.error(f"Error generating summary: {str(e)}")
-                            summary = "Summary not available."
-                    
-                    # Create new article
-                    new_article = Article(
-                        title=article_data.get('title', 'No Title'),
-                        url=article_data.get('url', ''),
-                        source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
-                        source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
-                        published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
-                        author=article_data.get('author', ''),
-                        description=article_data.get('description', ''),
-                        content=article_data.get('content', ''),
-                        summary=summary,
-                        url_to_image=article_data.get('urlToImage', ''),
-                        category='health',
-                        source_type='health'
-                    )
-                    db.session.add(new_article)
-            
-            # Commit all new articles to the database
-            db.session.commit()
-            
-            # Get the updated list of articles
-            rfk_articles = Article.query.filter(
-                db.or_(
-                    Article.title.ilike('%rfk%'),
-                    Article.title.ilike('%kennedy jr%'), 
-                    Article.title.ilike('%robert kennedy%'),
-                    Article.content.ilike('%rfk jr%'),
-                    Article.content.ilike('%robert kennedy jr%')
-                )
-            ).order_by(Article.published_at.desc()).limit(20).all()
-        
-        # Render the template with articles
-        return render_template('rfk_jr.html', articles=rfk_articles)
-        
-    except Exception as e:
-        logger.error(f"Error displaying RFK Jr. news: {str(e)}")
-        flash("Error fetching RFK Jr. news. Please try again later.", "danger")
-        return redirect(url_for('index'))
 
 
