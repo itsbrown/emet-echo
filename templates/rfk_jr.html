@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}RFK Jr. Health News{% endblock %}
+
+{% block content %}
+<div class="container pt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">RFK Jr. Health News</h1>
+            <p class="lead">The latest news and updates from Robert F. Kennedy Jr. and other health freedom advocates.</p>
+            <p class="text-muted">Last updated: {{ last_updated }}</p>
+            
+            {% if articles %}
+                <div class="row mt-4">
+                    {% for article in articles %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                {% if article.url_to_image %}
+                                    <img src="{{ article.url_to_image }}" class="card-img-top lazy-load" alt="{{ article.title }}" 
+                                        loading="lazy" onerror="this.onerror=null; this.src='/static/img/news-placeholder.png';">
+                                {% else %}
+                                    <img src="/static/img/news-placeholder.png" class="card-img-top" alt="No image available">
+                                {% endif %}
+                                
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ article.title }}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        {% if article.source_name %}
+                                            {{ article.source_name }}
+                                        {% else %}
+                                            Health Source
+                                        {% endif %}
+                                        {% if article.published_at %}
+                                            - {{ article.published_at.strftime('%B %d, %Y') }}
+                                        {% endif %}
+                                    </h6>
+                                    <p class="card-text">{{ article.description }}</p>
+                                </div>
+                                <div class="card-footer bg-transparent border-top-0">
+                                    <a href="{{ url_for('article_detail', article_url=article.url) }}" class="btn btn-primary">Read More</a>
+                                    <button class="btn btn-outline-secondary share-button float-end" 
+                                            data-title="{{ article.title }}" 
+                                            data-url="{{ article.url }}"
+                                            data-content="{{ article.description }}">
+                                        <i class="bi bi-share"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info mt-4">
+                    <p>No articles found. Please try again later.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
