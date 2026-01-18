@@ -89,7 +89,7 @@
     </div>
     {% endif %}
     
-    <!-- Articles Grid -->
+    <!-- Articles Grid with Integrated Products -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 news-grid">
         {% if articles %}
             {% for article in articles %}
@@ -147,6 +147,33 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Insert product card after articles 3, 7, 11, 15, 19, 23 (every 4 after first 3) -->
+                {% if featured_products and loop.index in [3, 7, 11, 15, 19, 23] %}
+                    {% set product_index = [3, 7, 11, 15, 19, 23].index(loop.index) %}
+                    {% if product_index < featured_products|length %}
+                        {% set product = featured_products[product_index] %}
+                        <div class="col">
+                            <div class="card h-100 product-card-inline" style="border: 2px solid #dc3545; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                                {% if product.image_url %}
+                                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.title }}" style="height: 180px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: #0f3460;">
+                                    <i class="bi bi-bag-heart-fill text-danger" style="font-size: 4rem;"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body text-center">
+                                    <span class="badge bg-danger mb-2">Shop Merchandise</span>
+                                    <h5 class="card-title text-white text-truncate" title="{{ product.title }}">{{ product.title }}</h5>
+                                    <p class="card-text text-danger fw-bold fs-5">{{ product.price_display }}</p>
+                                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-danger w-100">
+                                        <i class="bi bi-cart3 me-1"></i> Shop Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
             {% endfor %}
         {% else %}
             <div class="col-12 text-center py-5">
@@ -182,63 +209,6 @@
     </div>
 </div>
 
-<!-- Shop Featured Products Section -->
-<section class="container mt-5">
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2>
-                    <i class="bi bi-bag-heart-fill me-2 text-danger"></i>
-                    Featured Merchandise
-                </h2>
-                <a href="https://shop.emetecho.com" target="_blank" class="btn btn-outline-danger">
-                    View All Products <i class="bi bi-arrow-right ms-1"></i>
-                </a>
-            </div>
-            <hr>
-        </div>
-    </div>
-    
-    {% if featured_products and featured_products|length > 0 %}
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
-        {% for product in featured_products %}
-        <div class="col">
-            <div class="card h-100 product-card" style="border: 1px solid #333; transition: transform 0.2s, box-shadow 0.2s;">
-                {% if product.image_url %}
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.title }}" style="height: 150px; object-fit: cover;">
-                {% else %}
-                <div class="card-img-top d-flex align-items-center justify-content-center bg-dark" style="height: 150px;">
-                    <i class="bi bi-bag text-muted" style="font-size: 3rem;"></i>
-                </div>
-                {% endif %}
-                <div class="card-body p-2 text-center">
-                    <h6 class="card-title mb-1 text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
-                    <p class="card-text text-danger fw-bold mb-2">{{ product.price_display }}</p>
-                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-sm btn-outline-danger w-100">
-                        Shop Now
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border: none;">
-                <div class="card-body py-4 text-center">
-                    <i class="bi bi-bag-heart-fill text-white mb-3" style="font-size: 3rem;"></i>
-                    <h4 class="text-white mb-2">Shop Our Exclusive Merchandise</h4>
-                    <p class="text-white-50 mb-3">Show your support for truth-focused journalism with our patriotic gear collection.</p>
-                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-light btn-lg">
-                        <i class="bi bi-cart3 me-2"></i> Visit Shop
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-</section>
 
 <!-- Featured Articles Section -->
 <section class="container mt-5">
