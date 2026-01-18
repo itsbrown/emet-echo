@@ -1,0 +1,96 @@
+# Emet Echo - Conservative News Aggregator
+
+## Overview
+
+Emet Echo is a Flask-based news aggregation platform focused on conservative and independent news sources. The application scrapes and aggregates news from approved sources, generates AI-powered summaries using NLTK, and provides features like Trump executive order tracking, email newsletter subscriptions, and merchandise integration via Printify.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Backend Framework
+- **Flask** with SQLAlchemy ORM for database operations
+- Gunicorn as the production WSGI server (entry point: `main.py`)
+- Blueprint pattern for modular route organization (e.g., `blueprints/email.py`)
+
+### Database
+- **PostgreSQL** via SQLAlchemy with connection pooling (`pool_recycle=300`, `pool_pre_ping=True`)
+- Models defined in `models.py`: Article, UserPreference, SearchHistory, ExecutiveOrder, EmailSubscriber
+- Database URL configured via `DATABASE_URL` environment variable
+
+### News Aggregation
+- Custom scraper in `news_scraper.py` with curated list of approved conservative/independent sources
+- NewsAPI integration for fetching trending articles
+- Trafilatura for content extraction
+- Background scheduler (`scheduler.py`) refreshes news every 15 minutes
+
+### AI Summarization
+- **NLTK** for text processing and extractive summarization
+- Sentence tokenization and frequency-based sentence ranking
+- Located in `summarizer.py`
+
+### Email System
+- **SendGrid** for transactional emails (confirmations, daily digests)
+- Subscription management with confirmation tokens
+- Daily digest emails sent at 8 AM via scheduler
+- Email templates in `templates/emails/`
+
+### Frontend
+- Server-side rendering with Jinja2 templates
+- Bootstrap 5 with dark theme
+- Custom CSS in `static/css/styles.css`
+- Client-side JavaScript for share functionality, lazy loading
+
+### Printify Shop Integration
+- **Service Module** (`printify.py`) - API client with rate limiting, caching, and error handling
+- **Database Model** (`PrintifyProduct`) - Local caching of product data for performance
+- **Shop URL** - `shop.emetecho.com` (Printify subdomain)
+- **API Features**:
+  - Bearer token authentication with proper User-Agent headers
+  - 30-minute product caching to minimize API calls
+  - Rate limit handling with exponential backoff (600 req/min global limit)
+  - Graceful fallback when API is unavailable
+- **Display Locations**:
+  - Navigation bar "Shop" link
+  - Homepage featured products grid (6 products)
+  - Trump News page promotional banner
+  - RFK Jr. Health page sidebar banner
+  - Footer shop promotion on all pages
+
+### Key Features
+1. **News Feed** - Aggregated articles with AI summaries
+2. **Executive Order Tracker** - Fetches from Federal Register API with AI summaries
+3. **Email Newsletter** - Daily/weekly digests with preference management
+4. **Search** - Keyword-based article search
+5. **RFK Jr. Health News** - Dedicated section for health-related content
+6. **Source Suggestions** - User submission for new sources
+7. **Merchandise Shop** - Printify integration with featured products display
+
+### Authentication
+- Session-based user identification using Flask sessions
+- Email confirmation tokens for newsletter subscriptions
+- No user login system - relies on session IDs for preferences
+
+## External Dependencies
+
+### APIs & Services
+- **NewsAPI** (`NEWS_API_KEY`) - News article fetching
+- **SendGrid** (`SENDGRID_API_KEY`) - Email delivery from `info@emetecho.com`
+- **Printify** (`PRINTIFY_API_TOKEN`) - Merchandise integration at `shop.emetecho.com`
+- **Federal Register API** - Executive order data
+
+### Analytics & Advertising
+- **Google Analytics** (G-3RSW54KBPR)
+- **Google AdSense** (ca-pub-3252817577059646)
+
+### Python Packages
+- Flask, Flask-SQLAlchemy
+- SendGrid Python SDK
+- NLTK with punkt, stopwords
+- Trafilatura for web scraping
+- Requests for HTTP calls
+
+### Database
+- PostgreSQL (configured via `DATABASE_URL` environment variable)
