@@ -163,7 +163,6 @@
 </div>
 
 <!-- Shop Featured Products Section -->
-{% if featured_products and featured_products|length > 0 %}
 <section class="container mt-5">
     <div class="row">
         <div class="col-12 mb-4">
@@ -180,6 +179,7 @@
         </div>
     </div>
     
+    {% if featured_products and featured_products|length > 0 %}
     <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
         {% for product in featured_products %}
         <div class="col">
@@ -202,8 +202,23 @@
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border: none;">
+                <div class="card-body py-4 text-center">
+                    <i class="bi bi-bag-heart-fill text-white mb-3" style="font-size: 3rem;"></i>
+                    <h4 class="text-white mb-2">Shop Our Exclusive Merchandise</h4>
+                    <p class="text-white-50 mb-3">Show your support for truth-focused journalism with our patriotic gear collection.</p>
+                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-light btn-lg">
+                        <i class="bi bi-cart3 me-2"></i> Visit Shop
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </section>
-{% endif %}
 
 <!-- Featured Articles Section -->
 <section class="container mt-5">
