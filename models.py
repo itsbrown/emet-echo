@@ -135,3 +135,18 @@ class SuggestedNewsSource(db.Model):
     admin_notes = db.Column(db.Text)  # Admin notes on this suggestion
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PrintifyProduct(db.Model):
+    """Model for caching Printify products locally"""
+    id = db.Column(db.Integer, primary_key=True)
+    printify_id = db.Column(db.String(100), unique=True, nullable=False)
+    title = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    image_url = db.Column(db.String(1000))
+    min_price = db.Column(db.Float, default=0)
+    max_price = db.Column(db.Float, default=0)
+    tags = db.Column(db.Text)  # JSON string of tags
+    is_visible = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

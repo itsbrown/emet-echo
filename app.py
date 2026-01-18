@@ -11,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
+import printify
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -195,10 +196,13 @@ def index():
         logger.error(f"Error loading articles from database: {str(e)}")
         articles = news_data["trending"]
     
+    featured_products = printify.get_featured_products(6)
+    
     return render_template('index.html', 
                           articles=articles, 
                           last_updated=formatted_time,
-                          search_query=None)
+                          search_query=None,
+                          featured_products=featured_products)
 
 @app.route('/search')
 def search():

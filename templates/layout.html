@@ -101,6 +101,11 @@
                             <i class="bi bi-plus-circle me-1"></i> Suggest Source
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger fw-bold" href="https://shop.emetecho.com" target="_blank">
+                            <i class="bi bi-bag-heart me-1"></i> Shop
+                        </a>
+                    </li>
                     <li class="nav-item d-lg-none">
                         <a class="nav-link text-warning fw-bold" href="/executive-orders">
                             <i class="bi bi-arrow-right me-1"></i> GO TO EXECUTIVE ORDERS
@@ -136,6 +141,28 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Shop Promotion Footer Banner -->
+    {% if show_shop_banner is not defined or show_shop_banner %}
+    <section class="shop-banner py-4" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="text-white mb-2">
+                        <i class="bi bi-bag-heart-fill me-2 text-danger"></i>
+                        Support Emet Echo - Shop Our Merchandise
+                    </h4>
+                    <p class="text-white-50 mb-0">Show your support for truth-focused news with our exclusive merchandise collection.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-danger btn-lg">
+                        <i class="bi bi-cart3 me-2"></i> Visit Shop
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Footer -->
     <footer class="footer text-center text-white-50">
         <div class="container">
@@ -146,6 +173,11 @@
                         <small>
                             Featuring trusted conservative and independent news sources. All content belongs to their respective owners.
                         </small>
+                    </p>
+                    <p>
+                        <a href="https://shop.emetecho.com" target="_blank" class="text-danger text-decoration-none">
+                            <i class="bi bi-bag-heart me-1"></i> Shop Merchandise
+                        </a>
                     </p>
                 </div>
             </div>

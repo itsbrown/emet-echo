@@ -10,6 +10,26 @@
             <p class="lead">Latest positive news about President Trump, sourced from publishers across the globe.</p>
             <p class="text-muted">Last updated: {{ last_updated }}</p>
             
+            <!-- Shop Banner -->
+            <div class="card mb-4" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border: none;">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="text-white mb-1">
+                                <i class="bi bi-bag-heart-fill me-2"></i>
+                                Show Your Support - Shop Trump Merchandise
+                            </h5>
+                            <p class="text-white-50 mb-0 small">Get exclusive Emet Echo patriotic gear and support truth-focused journalism.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                            <a href="https://shop.emetecho.com" target="_blank" class="btn btn-light">
+                                <i class="bi bi-cart3 me-1"></i> Visit Shop
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             {% if articles %}
                 <div class="row mt-4">
                     {% for article in articles %}
