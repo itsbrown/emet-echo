@@ -9,6 +9,12 @@ from app import db
 from models import ExecutiveOrder
 from summarizer import generate_summary
 
+try:
+    from openai import OpenAI
+    _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+except Exception:
+    _openai_client = None
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -319,3 +325,70 @@ def initialize_executive_orders(force_refresh=False):
     except Exception as e:
         logger.error(f"Error initializing executive orders: {str(e)}")
         db.session.rollback()
+
+
+def generate_ai_analysis(order):
+    """
+    Generate AI analysis for an executive order using OpenAI.
+    Populates ai_summary, indie_vs_mainstream, historical_context, data_ties fields.
+    Stores results in the database (called once per order, cached thereafter).
+    
+    Args:
+        order: ExecutiveOrder model instance
+    """
+    if not _openai_client:
+        logger.warning("OpenAI client not available — skipping AI analysis")
+        return
+
+    source_text = order.full_text or order.summary or order.title or ""
+    source_text = source_text[:6000]
+
+    prompt = f"""You are an independent political analyst providing balanced, neutral analysis of U.S. executive orders.
+
+Executive Order: {order.order_number}
+Title: {order.title}
+Date: {order.date_issued.strftime('%B %d, %Y') if order.date_issued else 'Unknown'}
+Category: {order.category}
+
+Text excerpt:
+{source_text}
+
+Provide a JSON response with exactly these four keys:
+1. "ai_summary": A 150-250 word neutral, independent-leaning summary. Focus on what the order does, who it affects, and what the stated rationale is. Avoid partisan framing.
+2. "indie_vs_mainstream": A JSON object with two keys: "indie" (2-3 sentences on how independent/libertarian media tends to view this EO — skeptical of overreach, cost, or unintended consequences) and "mainstream" (2-3 sentences on how mainstream/establishment media tends to frame this EO — focusing on norms, precedent, or traditional policy analysis).
+3. "historical_context": 3-4 bullet points (plain text, each starting with "•") connecting this EO to historical precedents or patterns — mention specific prior administrations (Reagan, Clinton, Bush, Obama, first Trump term) and EO issuance waves when relevant.
+4. "data_ties": 2-3 sentences on relevant economic or social data context (unemployment rates, inflation, wages, regulatory burden) drawn from general knowledge that relates to the stated goals of this EO.
+
+Return only valid JSON, no markdown fences."""
+
+    try:
+        response = _openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1200,
+            temperature=0.5
+        )
+        raw = response.choices[0].message.content.strip()
+
+        # Strip markdown fences if present
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+
+        data = json.loads(raw)
+
+        order.ai_summary = data.get("ai_summary", "")
+        indie_mainstream = data.get("indie_vs_mainstream", {})
+        if isinstance(indie_mainstream, dict):
+            order.indie_vs_mainstream = json.dumps(indie_mainstream)
+        else:
+            order.indie_vs_mainstream = json.dumps({"indie": str(indie_mainstream), "mainstream": ""})
+        order.historical_context = data.get("historical_context", "")
+        order.data_ties = data.get("data_ties", "")
+
+        db.session.commit()
+        logger.info(f"AI analysis generated and cached for {order.order_number}")
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse OpenAI JSON response for {order.order_number}: {e}")
+    except Exception as e:
+        logger.error(f"Error generating AI analysis for {order.order_number}: {e}")

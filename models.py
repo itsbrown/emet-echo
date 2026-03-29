@@ -51,6 +51,12 @@ class ExecutiveOrder(db.Model):
     category = db.Column(db.String(200))  # Policy area e.g., Immigration, Energy
     url = db.Column(db.String(500))  # Link to official document
     source = db.Column(db.String(300))  # Source of the executive order data
+    ai_summary = db.Column(db.Text)  # AI-generated neutral summary (150-250 words)
+    indie_vs_mainstream = db.Column(db.Text)  # AI-generated indie vs. mainstream comparison (JSON or text)
+    historical_context = db.Column(db.Text)  # AI-generated historical cycle connection
+    data_ties = db.Column(db.Text)  # AI-generated data/economic context note
+    poll_yes = db.Column(db.Integer, default=0)  # Poll: helps independents
+    poll_no = db.Column(db.Integer, default=0)   # Poll: hurts independents
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

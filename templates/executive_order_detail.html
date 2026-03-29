@@ -1,9 +1,17 @@
 {% extends 'layout.html' %}
 
-{% block title %}Executive Order: {{ order.title }}{% endblock %}
+{% block title %}{{ order.order_number }}: {{ order.title }} | Emet Echo Executive Orders{% endblock %}
+
+{% block head %}
+<meta name="description" content="{{ order.ai_summary[:160] if order.ai_summary else (order.summary[:160] if order.summary else order.title) }}">
+<meta property="og:title" content="{{ order.order_number }}: {{ order.title }}">
+<meta property="og:description" content="{{ order.ai_summary[:200] if order.ai_summary else (order.summary[:200] if order.summary else order.title) }}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="{{ url_for('executive_order_detail', order_number=order.order_number, _external=True) }}">
+{% endblock %}
 
 {% block content %}
-<div class="container my-5">
+<div class="container my-4">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
@@ -12,141 +20,227 @@
         </ol>
     </nav>
 
-    <div class="row">
-        <div class="col-md-8">
-            <h1 class="fw-bold mb-4">{{ order.title }}</h1>
-            
-            <div class="card mb-4">
-                <div class="card-body p-4">
+    <!-- Header metadata card -->
+    <div class="card border-0 mb-4 shadow-sm" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-left: 4px solid var(--bs-warning) !important;">
+        <div class="card-body p-4">
+            <div class="row align-items-start">
+                <div class="col-md-8">
+                    <span class="badge bg-warning text-dark mb-2 fs-6">{{ order.order_number }}</span>
+                    <h1 class="fw-bold mb-3" style="font-size: 1.6rem; line-height: 1.3;">{{ order.title }}</h1>
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-6 col-md-3">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-file-earmark-text fs-4 text-primary me-3"></i>
+                                <i class="bi bi-calendar-event fs-5 text-warning me-2"></i>
                                 <div>
-                                    <div class="text-muted small">Order Number</div>
-                                    <div class="fw-bold">{{ order.order_number }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Date Issued</div>
+                                    <div class="fw-semibold">{{ order.date_issued.strftime('%b %d, %Y') if order.date_issued else 'Unknown' }}</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-md-3">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-calendar-event fs-4 text-primary me-3"></i>
+                                <i class="bi bi-tag fs-5 text-warning me-2"></i>
                                 <div>
-                                    <div class="text-muted small">Date Issued</div>
-                                    <div class="fw-bold">{{ order.date_issued.strftime('%b %d, %Y') }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</div>
+                                    <div class="fw-semibold">
+                                        {% if order.status == 'Active' %}<span class="text-success">{{ order.status }}</span>
+                                        {% elif order.status == 'Revoked' %}<span class="text-danger">{{ order.status }}</span>
+                                        {% elif order.status == 'Amended' %}<span class="text-warning">{{ order.status }}</span>
+                                        {% else %}<span class="text-info">{{ order.status or 'Unknown' }}</span>{% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-md-3">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-tag fs-4 text-primary me-3"></i>
+                                <i class="bi bi-folder fs-5 text-warning me-2"></i>
                                 <div>
-                                    <div class="text-muted small">Status</div>
-                                    <div class="fw-bold">{{ order.status }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Category</div>
+                                    <div class="fw-semibold">{{ order.category or 'General' }}</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-md-3">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-folder fs-4 text-primary me-3"></i>
+                                <i class="bi bi-building fs-5 text-warning me-2"></i>
                                 <div>
-                                    <div class="text-muted small">Category</div>
-                                    <div class="fw-bold">{{ order.category }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-building fs-4 text-primary me-3"></i>
-                                <div>
-                                    <div class="text-muted small">Source</div>
-                                    <div class="fw-bold">{{ order.source }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Source</div>
+                                    <div class="fw-semibold">{{ order.source or 'Federal Register' }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-4 mt-3 mt-md-0">
+                    <div class="d-grid gap-2">
+                        {% if order.url %}
+                        <a href="{{ order.url }}" target="_blank" rel="noopener" class="btn btn-warning text-dark">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>Official Document
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('executive_orders') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to All Orders
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="d-grid gap-2">
-                {% if order.url %}
-                <a href="{{ order.url }}" target="_blank" class="btn btn-primary mb-2">
-                    <i class="bi bi-file-earmark-pdf me-2"></i> View Official Document
-                </a>
-                {% endif %}
-                <button class="btn btn-outline-secondary share-button mb-2" 
-                        data-title="Trump Executive Order: {{ order.title }}" 
-                        data-url="{{ url_for('executive_orders', order=order.order_number, _external=True) }}"
-                        data-content="{{ order.full_text }}">
-                    <i class="bi bi-share"></i> Share
+    </div>
+
+    <!-- AI Summary card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #0f3460, #16213e);">
+            <i class="bi bi-robot fs-5 text-warning me-2"></i>
+            <h5 class="mb-0 text-white">AI Analysis Summary</h5>
+            <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">Independent Perspective</span>
+        </div>
+        <div class="card-body p-4">
+            {% if order.ai_summary %}
+            <p class="lead mb-0" style="line-height: 1.8; font-size: 1.05rem;">{{ order.ai_summary }}</p>
+            {% elif order.summary %}
+            <p class="lead mb-0" style="line-height: 1.8; font-size: 1.05rem;">{{ order.summary }}</p>
+            {% else %}
+            <p class="text-muted mb-0">AI analysis not yet available for this executive order. Check back later.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Indie vs. Mainstream -->
+    {% if indie_text or mainstream_text %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
+            <i class="bi bi-layout-split fs-5 text-info me-2"></i>
+            <h5 class="mb-0 text-white">Indie vs. Mainstream Perspectives</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="row g-0">
+                <div class="col-md-6 p-4 border-end border-secondary">
+                    <h6 class="fw-bold mb-3 text-warning">
+                        <i class="bi bi-person-raised-hand me-2"></i>Independent / Libertarian View
+                    </h6>
+                    <p class="mb-0" style="line-height: 1.75;">{{ indie_text }}</p>
+                </div>
+                <div class="col-md-6 p-4">
+                    <h6 class="fw-bold mb-3 text-info">
+                        <i class="bi bi-tv me-2"></i>Mainstream / Establishment View
+                    </h6>
+                    <p class="mb-0" style="line-height: 1.75;">{{ mainstream_text }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Historical Cycle Connection -->
+    {% if historical_bullets %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
+            <i class="bi bi-clock-history fs-5 text-success me-2"></i>
+            <h5 class="mb-0 text-white">Historical Cycle Connection</h5>
+        </div>
+        <div class="card-body p-4">
+            <ul class="list-unstyled mb-0">
+                {% for bullet in historical_bullets %}
+                <li class="d-flex align-items-start mb-3">
+                    <span class="badge rounded-pill me-3 mt-1 flex-shrink-0" style="background-color: #0f3460; font-size: 0.75rem;">
+                        <i class="bi bi-arrow-right"></i>
+                    </span>
+                    <span style="line-height: 1.6;">{{ bullet }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Data Ties -->
+    {% if order.data_ties %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
+            <i class="bi bi-bar-chart-line fs-5 text-primary me-2"></i>
+            <h5 class="mb-0 text-white">Economic & Data Context</h5>
+            <span class="badge bg-secondary ms-2" style="font-size: 0.65rem;">BLS / Economic Indicators</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="mb-0" style="line-height: 1.75;">{{ order.data_ties }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Poll widget -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
+            <i class="bi bi-hand-thumbs-up fs-5 text-warning me-2"></i>
+            <h5 class="mb-0 text-white">Community Poll</h5>
+        </div>
+        <div class="card-body p-4">
+            <p class="fw-semibold mb-3">Does this executive order help or hurt independent Americans?</p>
+
+            {% if voted %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-success fw-semibold"><i class="bi bi-hand-thumbs-up me-1"></i>Helps ({{ order.poll_yes or 0 }} votes)</span>
+                    <span>{{ poll_yes_pct }}%</span>
+                </div>
+                <div class="progress mb-3" style="height: 12px;">
+                    <div class="progress-bar bg-success" style="width: {{ poll_yes_pct }}%;"></div>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-danger fw-semibold"><i class="bi bi-hand-thumbs-down me-1"></i>Hurts ({{ order.poll_no or 0 }} votes)</span>
+                    <span>{{ poll_no_pct }}%</span>
+                </div>
+                <div class="progress" style="height: 12px;">
+                    <div class="progress-bar bg-danger" style="width: {{ poll_no_pct }}%;"></div>
+                </div>
+                <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">
+                    <i class="bi bi-check-circle me-1 text-success"></i>
+                    You have voted. Total votes: {{ poll_total }}.
+                </p>
+            </div>
+            {% else %}
+            <form method="post" action="{{ url_for('executive_order_vote', order_number=order.order_number) }}" class="d-flex gap-3 flex-wrap">
+                <button type="submit" name="vote" value="yes" class="btn btn-success btn-lg px-4">
+                    <i class="bi bi-hand-thumbs-up-fill me-2"></i>Helps Independents
                 </button>
-            </div>
+                <button type="submit" name="vote" value="no" class="btn btn-danger btn-lg px-4">
+                    <i class="bi bi-hand-thumbs-down-fill me-2"></i>Hurts Independents
+                </button>
+            </form>
+            {% if poll_total > 0 %}
+            <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">
+                {{ poll_total }} vote{{ 's' if poll_total != 1 else '' }} so far — cast yours above.
+            </p>
+            {% endif %}
+            {% endif %}
         </div>
     </div>
-    
-    <!-- Summary Section -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="bi bi-robot me-2"></i> AI-Generated Summary</h5>
-        </div>
-        <div class="card-body">
-            <div class="p-3 bg-dark rounded text-white">
-                {% if order.summary %}
-                <p class="lead mb-0">{{ order.summary }}</p>
-                {% else %}
-                <p class="lead mb-0 text-muted">No summary available for this executive order.</p>
-                {% endif %}
-            </div>
-            
-            <!-- Key Points -->
-            <div class="mt-4">
-                <h6 class="fw-bold border-bottom pb-2 mb-3">
-                    <i class="bi bi-layout-text-window me-2"></i> Key Points:
-                </h6>
-                <ul class="list-group list-group-flush shadow-sm">
-                    {% if order.summary %}
-                        {% set sentences = order.summary.split('. ') %}
-                        {% for point in sentences[:5] %}
-                            {% if point|length > 10 %}
-                            <li class="list-group-item">
-                                <i class="bi bi-check-circle-fill text-primary me-2"></i> {{ point }}.
-                            </li>
-                            {% endif %}
-                        {% else %}
-                            <li class="list-group-item">
-                                <i class="bi bi-check-circle-fill text-primary me-2"></i> {{ order.summary }}
-                            </li>
-                        {% endfor %}
-                    {% else %}
-                        <li class="list-group-item text-muted">No key points available</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Full Text Section -->
-    <div class="card">
+
+    <!-- Full text (collapsible) -->
+    <div class="card mb-4 shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-file-text me-2"></i> Full Text</h5>
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#fullTextCollapse" aria-expanded="false" aria-controls="fullTextCollapse">
-                <i class="bi bi-chevron-down"></i> Toggle
+            <div class="d-flex align-items-center">
+                <i class="bi bi-file-text fs-5 me-2"></i>
+                <h5 class="mb-0">Full Text</h5>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#fullTextCollapse" aria-expanded="false">
+                <i class="bi bi-chevron-down me-1"></i>Toggle
             </button>
         </div>
         <div class="collapse" id="fullTextCollapse">
-            <div class="card-body">
+            <div class="card-body p-4">
                 {% if order.full_text %}
-                <div class="p-3 border rounded bg-dark text-white" style="white-space: pre-line; max-height: 400px; overflow-y: auto;">
-                    {{ order.full_text }}
-                </div>
+                <div class="p-3 border rounded" style="white-space: pre-line; max-height: 450px; overflow-y: auto; font-size: 0.9rem; line-height: 1.7;">{{ order.full_text }}</div>
                 {% else %}
-                <div class="p-3 border rounded bg-dark text-muted">
-                    Full text of this executive order is not available.
-                </div>
+                <p class="text-muted mb-0">Full text of this executive order is not available.</p>
                 {% endif %}
             </div>
         </div>
+    </div>
+
+    <!-- Disclaimer footer -->
+    <div class="alert alert-secondary border-0 mb-5" style="font-size: 0.82rem;">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Disclaimer:</strong> AI-generated analysis is for informational purposes only and does not constitute legal or political advice. The "Indie vs. Mainstream" comparison reflects generalised media tendencies and does not represent specific outlets. Economic data references are drawn from publicly available training knowledge and may not reflect the latest figures. Always consult primary sources for official guidance.
     </div>
 </div>
 {% endblock %}
@@ -154,11 +248,18 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize any bootstrap components
-        var collapsibles = document.querySelectorAll('.collapse');
-        
-        // Share button already handled by setupShareButtons() in main.js
-        // No additional code needed here as it's applied globally
+        var colls = document.querySelectorAll('[data-bs-toggle="collapse"]');
+        colls.forEach(function(el) {
+            var target = document.querySelector(el.getAttribute('data-bs-target'));
+            if (target) {
+                target.addEventListener('show.bs.collapse', function() {
+                    el.querySelector('i').classList.replace('bi-chevron-down', 'bi-chevron-up');
+                });
+                target.addEventListener('hide.bs.collapse', function() {
+                    el.querySelector('i').classList.replace('bi-chevron-up', 'bi-chevron-down');
+                });
+            }
+        });
     });
 </script>
 {% endblock %}

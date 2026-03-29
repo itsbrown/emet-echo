@@ -46,6 +46,25 @@ app.register_blueprint(email_bp)
 with app.app_context():
     init_email_blueprint(app, db)
 
+# Auto-migrate: ensure new ExecutiveOrder columns exist on every startup
+with app.app_context():
+    try:
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("""
+                ALTER TABLE executive_order
+                    ADD COLUMN IF NOT EXISTS ai_summary TEXT,
+                    ADD COLUMN IF NOT EXISTS indie_vs_mainstream TEXT,
+                    ADD COLUMN IF NOT EXISTS historical_context TEXT,
+                    ADD COLUMN IF NOT EXISTS data_ties TEXT,
+                    ADD COLUMN IF NOT EXISTS poll_yes INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS poll_no INTEGER DEFAULT 0
+            """))
+            conn.commit()
+        logger.info("ExecutiveOrder schema migration applied (IF NOT EXISTS).")
+    except Exception as _mig_err:
+        logger.warning(f"Schema migration skipped or failed (may be normal): {_mig_err}")
+
 # Ensure user has a session ID
 def get_or_create_user_id():
     if 'user_id' not in session:
@@ -522,23 +541,29 @@ def executive_orders():
     """Display Trump executive orders with AI summaries"""
     try:
         from models import ExecutiveOrder
-        
+
+        # Backwards-compat: ?order=<order_number> redirects to clean URL
+        order_number_qs = request.args.get('order', '')
+        if order_number_qs:
+            return redirect(url_for('executive_order_detail', order_number=order_number_qs), 301)
+
         # Get filter parameters
         category = request.args.get('category', '')
         status = request.args.get('status', '')
         search = request.args.get('search', '')
-        order_number = request.args.get('order', '')
-        
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+
         # Build base query
         query = ExecutiveOrder.query
-        
+
         # Apply filters
         if category:
             query = query.filter(ExecutiveOrder.category.ilike(f'%{category}%'))
-        
+
         if status:
             query = query.filter(ExecutiveOrder.status == status)
-            
+
         if search:
             query = query.filter(
                 db.or_(
@@ -547,43 +572,192 @@ def executive_orders():
                     ExecutiveOrder.summary.ilike(f'%{search}%')
                 )
             )
-            
-        if order_number:
-            query = query.filter(ExecutiveOrder.order_number == order_number)
-        
+
+        if date_from:
+            try:
+                dt_from = datetime.strptime(date_from, '%Y-%m-%d')
+                query = query.filter(ExecutiveOrder.date_issued >= dt_from)
+            except ValueError:
+                pass
+
+        if date_to:
+            try:
+                dt_to = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1) - timedelta(microseconds=1)
+                query = query.filter(ExecutiveOrder.date_issued <= dt_to)
+            except ValueError:
+                pass
+
         # Get orders sorted by date (newest first)
         orders = query.order_by(ExecutiveOrder.date_issued.desc()).all()
-        
+
         # Get unique categories and statuses for filters
         categories = db.session.query(ExecutiveOrder.category).distinct().all()
         categories = sorted([cat[0] for cat in categories if cat[0]])
-        
+
         statuses = db.session.query(ExecutiveOrder.status).distinct().all()
         statuses = sorted([stat[0] for stat in statuses if stat[0]])
-        
-        # If a specific order is requested but multiple filters were applied,
-        # redirect to just show that specific order
-        if order_number and len(orders) > 1:
-            return redirect(url_for('executive_orders', order=order_number))
-        
-        # If only one order is found and it's a specific request, show the detailed view
-        if len(orders) == 1 and order_number:
-            return render_template('executive_order_detail.html',
-                                order=orders[0])
-        
+
+        # Quick stats
+        from sqlalchemy import func
+        total_orders = ExecutiveOrder.query.count()
+        this_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        active_this_month = ExecutiveOrder.query.filter(
+            ExecutiveOrder.date_issued >= this_month_start,
+            ExecutiveOrder.status == 'Active'
+        ).count()
+
+        most_common_category_row = db.session.query(
+            ExecutiveOrder.category, func.count(ExecutiveOrder.id).label('cnt')
+        ).group_by(ExecutiveOrder.category).order_by(func.count(ExecutiveOrder.id).desc()).first()
+        most_common_category = most_common_category_row[0] if most_common_category_row else 'N/A'
+
+        # Missed angles blurbs: try to show indie_vs_mainstream from recent AI-analysed orders.
+        # If fewer than 2 have AI analysis, trigger generation for the newest without it,
+        # then fall back to the regular summary if AI generation fails or quota is exceeded.
+        recent_with_ai = ExecutiveOrder.query.filter(
+            ExecutiveOrder.indie_vs_mainstream.isnot(None)
+        ).order_by(ExecutiveOrder.date_issued.desc()).limit(3).all()
+
+        missed_angles = []
+        for eo in recent_with_ai:
+            try:
+                data = json.loads(eo.indie_vs_mainstream)
+                indie_text = data.get('indie', '')
+                if indie_text:
+                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': indie_text})
+            except Exception:
+                pass
+
+        # Fallback: use regular summary for any remaining slots (up to 3 total)
+        if len(missed_angles) < 3:
+            recent_any = ExecutiveOrder.query.filter(
+                ExecutiveOrder.summary.isnot(None)
+            ).order_by(ExecutiveOrder.date_issued.desc()).limit(5).all()
+            seen_ids = {a['order_number'] for a in missed_angles}
+            for eo in recent_any:
+                if len(missed_angles) >= 3:
+                    break
+                if eo.order_number not in seen_ids and eo.summary:
+                    blurb = eo.summary[:250].rsplit(' ', 1)[0] + '…' if len(eo.summary) > 250 else eo.summary
+                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': blurb, 'is_fallback': True})
+                    seen_ids.add(eo.order_number)
+
         return render_template('executive_orders.html',
-                             orders=orders,
-                             categories=categories,
-                             statuses=statuses,
-                             category=category,
-                             status=status,
-                             search=search,
-                             last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    
+                               orders=orders,
+                               categories=categories,
+                               statuses=statuses,
+                               category=category,
+                               status=status,
+                               search=search,
+                               date_from=date_from,
+                               date_to=date_to,
+                               last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                               total_orders=total_orders,
+                               active_this_month=active_this_month,
+                               most_common_category=most_common_category,
+                               missed_angles=missed_angles)
+
     except Exception as e:
         logger.error(f"Error displaying executive orders: {str(e)}")
         flash(f"Error loading executive orders: {str(e)}", "danger")
         return redirect(url_for('index'))
+
+
+@app.route('/executive-orders/<path:order_number>')
+def executive_order_detail(order_number):
+    """Display detailed view of a single executive order with AI analysis"""
+    try:
+        from models import ExecutiveOrder
+        from executive_orders import generate_ai_analysis
+
+        order = ExecutiveOrder.query.filter_by(order_number=order_number).first()
+        if not order:
+            flash(f"Executive Order '{order_number}' not found.", "danger")
+            return redirect(url_for('executive_orders'))
+
+        # Generate AI analysis lazily (only if not already cached)
+        if not order.ai_summary:
+            try:
+                generate_ai_analysis(order)
+            except Exception as e:
+                logger.error(f"AI analysis failed for {order_number}: {e}")
+
+        # Parse indie_vs_mainstream JSON
+        indie_text = ''
+        mainstream_text = ''
+        if order.indie_vs_mainstream:
+            try:
+                ivm = json.loads(order.indie_vs_mainstream)
+                indie_text = ivm.get('indie', '')
+                mainstream_text = ivm.get('mainstream', '')
+            except Exception:
+                indie_text = order.indie_vs_mainstream
+
+        # Parse historical context bullets
+        historical_bullets = []
+        if order.historical_context:
+            for line in order.historical_context.split('\n'):
+                line = line.strip().lstrip('•').strip()
+                if line:
+                    historical_bullets.append(line)
+
+        # Poll tally
+        poll_total = (order.poll_yes or 0) + (order.poll_no or 0)
+        poll_yes_pct = round(((order.poll_yes or 0) / poll_total * 100)) if poll_total > 0 else 0
+        poll_no_pct = 100 - poll_yes_pct if poll_total > 0 else 0
+        voted = session.get(f'voted_eo_{order.order_number}', False)
+
+        return render_template('executive_order_detail.html',
+                               order=order,
+                               indie_text=indie_text,
+                               mainstream_text=mainstream_text,
+                               historical_bullets=historical_bullets,
+                               poll_yes_pct=poll_yes_pct,
+                               poll_no_pct=poll_no_pct,
+                               poll_total=poll_total,
+                               voted=voted)
+
+    except Exception as e:
+        logger.error(f"Error displaying executive order detail: {str(e)}")
+        flash(f"Error loading executive order: {str(e)}", "danger")
+        return redirect(url_for('executive_orders'))
+
+
+@app.route('/executive-orders/<path:order_number>/vote', methods=['POST'])
+def executive_order_vote(order_number):
+    """Handle Yes/No poll vote for an executive order"""
+    try:
+        from models import ExecutiveOrder
+
+        session_key = f'voted_eo_{order_number}'
+        if session.get(session_key):
+            flash("You have already voted on this executive order.", "info")
+            return redirect(url_for('executive_order_detail', order_number=order_number))
+
+        order = ExecutiveOrder.query.filter_by(order_number=order_number).first()
+        if not order:
+            flash("Executive order not found.", "danger")
+            return redirect(url_for('executive_orders'))
+
+        vote = request.form.get('vote', '')
+        if vote == 'yes':
+            order.poll_yes = (order.poll_yes or 0) + 1
+        elif vote == 'no':
+            order.poll_no = (order.poll_no or 0) + 1
+        else:
+            flash("Invalid vote.", "danger")
+            return redirect(url_for('executive_order_detail', order_number=order_number))
+
+        db.session.commit()
+        session[session_key] = True
+        flash("Your vote has been recorded. Thank you!", "success")
+
+    except Exception as e:
+        logger.error(f"Error recording vote for {order_number}: {e}")
+        db.session.rollback()
+        flash("Error recording vote. Please try again.", "danger")
+
+    return redirect(url_for('executive_order_detail', order_number=order_number))
 
 @app.route('/api/generate-twitter-summary', methods=['POST'])
 def generate_twitter_summary():
