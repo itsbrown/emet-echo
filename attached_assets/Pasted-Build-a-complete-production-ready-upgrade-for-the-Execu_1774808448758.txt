@@ -1,0 +1,33 @@
+Build a complete, production-ready upgrade for the Executive Orders tracker on emetecho.com.
+Current state: The page at /executive-orders shows a clean table pulled from the Federal Register API with columns: Order #, Title, Date, Category (mostly "Federal Regulation"), Status ("Active"), and "View Details" links. The details pages currently just show raw text with no AI value-add.
+Goal: Make the pages highly original so they pass Google Ads "unique content" review by adding substantive AI-driven insights, comparisons, historical cycles, and data connections.
+Requirements:
+
+Overview Page (/executive-orders)
+Keep the existing table (make it filterable by date/category).
+Add a prominent hero: "Trump Executive Order Tracker – AI Summaries + What Mainstream Missed + Policy Cycles".
+Add a "Quick Stats" section (total active orders this month, etc.).
+Add a "Patterns & Cycles" section with an embedded timeline/chart showing EO issuance waves (Reagan → Trump) and annotations for deregulation, bureaucracy cuts, etc.
+Add a "This Week's Missed Angles" teaser with 2-3 AI-generated short insights linking recent EOs to broader news.
+
+Individual EO Detail Pages (e.g., /executive-orders/[order-number])
+For every EO, generate a structured page with:
+Header: Title, Date, Category, Status, link to full Federal Register text.
+AI Summary (150-250 words): Neutral, insightful explanation of what the EO does, its intended impact from an independent/conservative-leaning perspective, and potential pros/cons.
+Indie vs Mainstream Comparison: A boxed section highlighting what independent sources emphasized vs. what mainstream outlets focused on or omitted.
+Historical Cycle Connection: Show how this EO fits patterns from past administrations (e.g., "Similar to Reagan-era deregulation moves..." or "Echoes Bush-era FEMA reviews..."). Include a small timeline or bullet points.
+Data Ties (where relevant): Pull or reference BLS unemployment, FBI crime data, or economic indicators and note any plausible connections (e.g., "Similar past EOs preceded X% drop in unemployment in affected sectors").
+Disclaimer at bottom: "AI-assisted analysis for context. Always verify official sources. Sources linked."
+Optional poll: "Does this EO help or hurt independents? Vote."
+
+Technical Implementation
+Use the existing Federal Register API pull for raw data.
+Add logic to call an AI (Grok, OpenAI, etc.) to generate the summaries, comparisons, and cycle notes dynamically or on build.
+Make pages fast, mobile-friendly, clean design (simple cards, good typography, no ad clutter).
+Include proper meta tags for SEO.
+Output the full code structure (HTML + JS or Python/Flask if backend) plus any needed helper functions/prompts for AI generation.
+
+Uniqueness Focus
+Emphasize original analysis, visuals, and connections — not just republishing. This should make the site feel like a smart curator rather than a feed aggregator.
+
+Start by showing the file structure you'll create, then generate the main HTML/JS template for the overview and one sample detail page. Use clean, modern Tailwind or plain CSS. Make the AI generation prompt reusable.
