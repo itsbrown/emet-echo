@@ -384,6 +384,16 @@ def index():
         logger.error(f"Error fetching latest EOs for homepage: {_eo_home_err}")
         latest_eos = []
     
+    # Fetch latest X posts for homepage (10 newest)
+    x_posts_list = []
+    try:
+        import x_scraper
+        all_x_posts, _ = x_scraper.fetch_all_handle_posts()
+        x_posts_list = all_x_posts[:10]
+    except Exception as _x_err:
+        logger.error(f"Error fetching X posts for homepage: {_x_err}")
+        x_posts_list = []
+
     return render_template('index.html', 
                           articles=display_articles, 
                           last_updated=formatted_time,
@@ -392,7 +402,8 @@ def index():
                           weekly_digest=weekly_digest,
                           missed_angles=missed_angles,
                           eo_patterns_summary=eo_patterns_summary,
-                          latest_eos=latest_eos)
+                          latest_eos=latest_eos,
+                          x_posts=x_posts_list)
 
 @app.route('/search')
 def search():
@@ -1357,24 +1368,6 @@ def admin_x_handles():
 
 @app.route('/x-posts')
 def x_posts():
-    """Public feed showing posts from monitored X handles scraped via Playwright."""
-    from models import XHandle
-    import x_scraper
-
-    handles = XHandle.query.order_by(XHandle.handle).all()
-
-    posts = []
-    error_msg = None
-    if not handles:
-        error_msg = "No X handles are being monitored yet. An admin can add them at /admin/x-handles."
-    else:
-        try:
-            posts, scrape_error = x_scraper.fetch_all_handle_posts()
-            if scrape_error:
-                error_msg = f"Scraper error: {scrape_error}"
-        except Exception as e:
-            logger.error(f"Error fetching X posts: {e}")
-            error_msg = "Could not fetch posts from X at this time. Please try again later."
-
-    return render_template('x_posts.html', posts=posts, error_msg=error_msg, handles=handles)
+    """Redirect to homepage where X posts now appear."""
+    return redirect(url_for('index'))
 
