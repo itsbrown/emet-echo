@@ -46,22 +46,18 @@
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="sourcesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Conservative Sources
+                            Sources
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="sourcesDropdown">
+                            <li><h6 class="dropdown-header">Conservative</h6></li>
                             <li><a class="dropdown-item" href="/search?q=site:foxnews.com">Fox News</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:nypost.com">New York Post</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:washingtontimes.com">Washington Times</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:breitbart.com">Breitbart</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:dailywire.com">Daily Wire</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:theepochtimes.com">Epoch Times</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="independentSourcesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Independent Sources
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="independentSourcesDropdown">
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Independent</h6></li>
                             <li><a class="dropdown-item" href="/search?q=site:zerohedge.com">Zero Hedge</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:reason.com">Reason</a></li>
                             <li><a class="dropdown-item" href="/search?q=site:thehill.com">The Hill</a></li>
@@ -70,50 +66,38 @@
                             <li><a class="dropdown-item" href="/search?q=site:axios.com">Axios</a></li>
                         </ul>
                     </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="topicsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Topics
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="topicsDropdown">
+                            <li><a class="dropdown-item" href="/trump"><i class="bi bi-star-fill me-2 text-info"></i>Trump News</a></li>
+                            <li><a class="dropdown-item" href="/executive-orders"><i class="bi bi-file-earmark-text me-2 text-warning"></i>Executive Orders</a></li>
+                            <li><a class="dropdown-item" href="/eo-evolution"><i class="bi bi-activity me-2" style="color: #a78bfa;"></i>EO Evolution</a></li>
+                            <li><a class="dropdown-item" href="/rfk-jr"><i class="bi bi-heart-pulse me-2 text-success"></i>RFK Jr. Health</a></li>
+                            <li><a class="dropdown-item" href="/x-posts"><i class="bi bi-twitter-x me-2"></i>X Posts</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link text-info" href="/trump">
-                            <i class="bi bi-star-fill me-1"></i> Trump News
+                        <a class="nav-link" href="#" id="refreshButton" onclick="refreshNews()" data-bs-toggle="tooltip" title="Refresh" aria-label="Refresh">
+                            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-warning" href="/executive-orders">
-                            <i class="bi bi-file-earmark-text me-1"></i> Executive Orders
+                        <a class="nav-link" href="{{ email_routes.subscribe if email_routes is defined else url_for('email.subscribe') }}" data-bs-toggle="tooltip" title="Newsletter" aria-label="Newsletter">
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/eo-evolution" style="color: #a78bfa;">
-                            <i class="bi bi-activity me-1"></i> EO Evolution
+                        <a class="nav-link" href="{{ url_for('suggest_source') }}" data-bs-toggle="tooltip" title="Suggest Source" aria-label="Suggest Source">
+                            <i class="bi bi-plus-circle" aria-hidden="true"></i>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-success" href="/rfk-jr">
-                            <i class="bi bi-heart-pulse me-1"></i> RFK Jr. Health
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/x-posts" style="color: #1d9bf0;">
-                            <i class="bi bi-twitter-x me-1"></i> X Posts
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="refreshButton" onclick="refreshNews()">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-success" href="{{ email_routes.subscribe if email_routes is defined else url_for('email.subscribe') }}">
-                            <i class="bi bi-envelope me-1"></i> Newsletter
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-primary" href="{{ url_for('suggest_source') }}">
-                            <i class="bi bi-plus-circle me-1"></i> Suggest Source
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-danger fw-bold" href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer">
-                            <i class="bi bi-bag-heart me-1"></i> Shop
-                        </a>
+                    <li class="nav-item me-2">
+                        <a class="btn btn-sm btn-outline-danger" href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer">Shop</a>
                     </li>
                 </ul>
                 <form class="d-flex" id="searchForm" action="/search" method="get">
