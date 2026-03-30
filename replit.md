@@ -17,7 +17,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database
 - **PostgreSQL** via SQLAlchemy with connection pooling (`pool_recycle=300`, `pool_pre_ping=True`)
-- Models defined in `models.py`: Article, UserPreference, SearchHistory, ExecutiveOrder, EmailSubscriber
+- Models defined in `models.py`: Article, UserPreference, SearchHistory, ExecutiveOrder, EmailSubscriber, XHandle
 - Database URL configured via `DATABASE_URL` environment variable
 
 ### News Aggregation
@@ -67,6 +67,7 @@ Preferred communication style: Simple, everyday language.
 5. **RFK Jr. Health News** - Dedicated section for health-related content
 6. **Source Suggestions** - User submission for new sources
 7. **Merchandise Shop** - Printify integration with featured products display
+8. **X Posts Monitor** - Admin-curated list of X (Twitter) handles; public feed shows last 24h of posts via X API v2
 
 ### Authentication
 - Session-based user identification using Flask sessions
@@ -80,6 +81,7 @@ Preferred communication style: Simple, everyday language.
 - **SendGrid** (`SENDGRID_API_KEY`) - Email delivery from `info@emetecho.com`
 - **Printify** (`PRINTIFY_API_TOKEN`) - Merchandise integration at `shop.emetecho.com`
 - **Federal Register API** - Executive order data
+- **X API v2** (`X_BEARER_TOKEN`) - Tweet fetching for monitored handles; app logs warning and shows friendly error if absent
 
 ### Analytics & Advertising
 - **Google Analytics** (G-3RSW54KBPR)

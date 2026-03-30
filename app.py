@@ -95,6 +95,27 @@ with app.app_context():
     except Exception as _mig_err2:
         logger.warning(f"Article schema migration skipped or failed (may be normal): {_mig_err2}")
 
+# Auto-migrate: ensure x_handle table exists on every startup
+with app.app_context():
+    try:
+        with db.engine.connect() as _conn_xh:
+            from sqlalchemy import text as _text_xh
+            _conn_xh.execute(_text_xh("""
+                CREATE TABLE IF NOT EXISTS x_handle (
+                    id SERIAL PRIMARY KEY,
+                    handle VARCHAR(100) UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            _conn_xh.commit()
+        logger.info("x_handle table ensured.")
+    except Exception as _xh_err:
+        logger.warning(f"x_handle migration skipped or failed: {_xh_err}")
+
+# Warn if X_BEARER_TOKEN is missing
+if not os.environ.get("X_BEARER_TOKEN"):
+    logger.warning("X_BEARER_TOKEN is not set. The X Posts feed will not display live tweets.")
+
 def _safe_json_loads(value, default=None):
     """Parse JSON string safely, returning default on failure or when value is falsy."""
     if not value:
@@ -1301,4 +1322,64 @@ def suggest_source():
     # GET request - show form
     return render_template('suggest_source.html')
 
+
+# ---------------------------------------------------------------------------
+# X Handles admin + feed routes
+# ---------------------------------------------------------------------------
+
+@app.route('/admin/x-handles', methods=['GET', 'POST'])
+def admin_x_handles():
+    """Admin page to view and manage monitored X (Twitter) handles."""
+    from models import XHandle
+    if request.method == 'POST':
+        raw = request.form.get('handles', '')
+        seen = set()
+        new_handles = []
+        for line in raw.splitlines():
+            h = line.strip().lstrip('@').lower()
+            if h and h not in seen:
+                seen.add(h)
+                new_handles.append(h)
+        try:
+            XHandle.query.delete()
+            for h in new_handles:
+                db.session.add(XHandle(handle=h))
+            db.session.commit()
+            flash(f"Handle list updated ({len(new_handles)} handles saved).", "success")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error saving X handles: {e}")
+            flash("An error occurred while saving handles. Please try again.", "danger")
+        return redirect(url_for('admin_x_handles'))
+
+    handles = XHandle.query.order_by(XHandle.handle).all()
+    handles_text = '\n'.join(h.handle for h in handles)
+    return render_template('admin_x_handles.html', handles_text=handles_text, handles=handles)
+
+
+@app.route('/x-posts')
+def x_posts():
+    """Public feed showing the last 24h of posts from monitored X handles."""
+    from models import XHandle
+    import x_api
+
+    bearer_set = bool(os.environ.get("X_BEARER_TOKEN"))
+    handles = XHandle.query.order_by(XHandle.handle).all()
+
+    posts = []
+    error_msg = None
+    if not bearer_set:
+        error_msg = "The X API token is not configured. Contact the site admin to enable live posts."
+    elif not handles:
+        error_msg = "No X handles are being monitored yet. An admin can add them at /admin/x-handles."
+    else:
+        try:
+            posts, api_error = x_api.fetch_all_handle_posts()
+            if api_error:
+                error_msg = f"X API error: {api_error}"
+        except Exception as e:
+            logger.error(f"Error fetching X posts: {e}")
+            error_msg = "Could not fetch posts from X at this time. Please try again later."
+
+    return render_template('x_posts.html', posts=posts, error_msg=error_msg, handles=handles)
 

@@ -147,6 +147,13 @@ class SuggestedNewsSource(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class XHandle(db.Model):
+    """Model for storing monitored X (Twitter) handles"""
+    id = db.Column(db.Integer, primary_key=True)
+    handle = db.Column(db.String(100), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class PrintifyProduct(db.Model):
     """Model for caching Printify products locally"""
     id = db.Column(db.Integer, primary_key=True)

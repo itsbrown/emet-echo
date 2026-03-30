@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block title %}X Posts Feed | Emet Echo{% endblock %}
+
+{% block head %}
+<style>
+    .xfeed-bg { background: #0d1117; }
+    .post-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        transition: border-color 0.2s, transform 0.15s;
+    }
+    .post-card:hover {
+        border-color: rgba(29,155,240,0.4);
+        transform: translateY(-2px);
+    }
+    .handle-badge {
+        font-size: 0.8rem;
+        background: rgba(29,155,240,0.14);
+        border: 1px solid rgba(29,155,240,0.35);
+        color: #1d9bf0;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .handle-badge:hover { background: rgba(29,155,240,0.25); color: #1d9bf0; }
+    .post-text {
+        color: #e6edf3;
+        font-size: 0.93rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .post-meta {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    .stat-chip {
+        font-size: 0.78rem;
+        color: #8b949e;
+    }
+    .stat-chip i { margin-right: 3px; }
+    .hero-gradient {
+        background: linear-gradient(135deg, #0a0a1a 0%, #0d1f3c 60%, #0a0a1a 100%);
+        border-bottom: 2px solid rgba(29,155,240,0.35);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="xfeed-bg min-vh-100">
+
+    <!-- Hero banner -->
+    <div class="py-5 hero-gradient">
+        <div class="container">
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <i class="bi bi-twitter-x fs-4" style="color: #1d9bf0;"></i>
+                <span class="badge" style="background: rgba(29,155,240,0.2); color: #1d9bf0; font-size: 0.7rem; letter-spacing: 0.06em; border: 1px solid rgba(29,155,240,0.4);">LIVE FEED</span>
+                <span class="badge bg-secondary" style="font-size: 0.7rem;">Last 24 Hours</span>
+            </div>
+            <h1 class="display-5 fw-bold text-white mb-2">X Posts Monitor</h1>
+            <p class="lead mb-2" style="color: rgba(255,255,255,0.55);">
+                Real-time posts from {{ handles|length }} monitored account{{ 's' if handles|length != 1 else '' }}, curated from conservative and independent voices.
+            </p>
+            {% if handles %}
+            <div class="d-flex flex-wrap gap-1 mt-3">
+                {% for h in handles %}
+                <a href="https://x.com/{{ h.handle }}" target="_blank" rel="noopener noreferrer" class="handle-badge">@{{ h.handle }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container py-4">
+
+        {% if error_msg %}
+        <div class="alert alert-info d-flex align-items-start gap-3 mt-2">
+            <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
+            <div>
+                <strong>Feed Unavailable</strong><br>
+                {{ error_msg }}
+            </div>
+        </div>
+        {% elif posts %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size: 0.78rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.06em;">
+                <i class="bi bi-grid me-1"></i>{{ posts|length }} post{{ 's' if posts|length != 1 else '' }} in the last 24 hours
+            </span>
+        </div>
+
+        <div class="row g-3">
+            {% for post in posts %}
+            <div class="col-lg-6">
+                <div class="post-card p-4 h-100 d-flex flex-column">
+                    <!-- Header row -->
+                    <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                        <a href="https://x.com/{{ post.handle }}" target="_blank" rel="noopener noreferrer" class="handle-badge">
+                            <i class="bi bi-twitter-x me-1"></i>@{{ post.handle }}
+                        </a>
+                        <span class="post-meta text-end">
+                            {% if post.created_at %}
+                                {% set ts = post.created_at | replace('T', ' ') | replace('Z', '') | replace('.000', '') %}
+                                <i class="bi bi-clock me-1"></i>{{ ts[:16] }} UTC
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Post text -->
+                    <p class="post-text flex-grow-1 mb-3">{{ post.text }}</p>
+
+                    <!-- Footer stats -->
+                    <div class="d-flex align-items-center gap-3 mt-auto pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                        <span class="stat-chip"><i class="bi bi-heart text-danger"></i>{{ post.likes | default(0) }}</span>
+                        <span class="stat-chip"><i class="bi bi-repeat" style="color: #1d9bf0;"></i>{{ post.retweets | default(0) }}</span>
+                        {% if post.tweet_id %}
+                        <a href="https://x.com/{{ post.handle }}/status/{{ post.tweet_id }}" target="_blank" rel="noopener noreferrer"
+                           class="ms-auto text-decoration-none" style="font-size: 0.75rem; color: #1d9bf0;">
+                            View on X <i class="bi bi-box-arrow-up-right ms-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-twitter-x fs-1 mb-3 d-block" style="color: #1d9bf0; opacity: 0.4;"></i>
+            <h5 class="text-muted">No posts found in the last 24 hours</h5>
+            <p class="text-muted" style="font-size: 0.88rem;">The monitored accounts may not have posted recently, or the API returned no results.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

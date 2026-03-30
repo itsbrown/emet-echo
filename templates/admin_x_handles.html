@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin — X Handles | Emet Echo{% endblock %}
+
+{% block head %}
+<style>
+    .admin-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+    }
+    .handle-pill {
+        font-size: 0.85rem;
+        background: rgba(29,155,240,0.12);
+        border: 1px solid rgba(29,155,240,0.3);
+        color: #1d9bf0;
+        border-radius: 20px;
+        padding: 3px 12px;
+        display: inline-block;
+        margin: 3px 2px;
+    }
+    textarea.handle-area {
+        background: #161b22;
+        border-color: rgba(255,255,255,0.12);
+        color: #e6edf3;
+        font-family: monospace;
+        font-size: 0.92rem;
+    }
+    textarea.handle-area::placeholder { color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: #0d1117; min-height: 100vh;">
+    <div class="py-5" style="background: linear-gradient(135deg, #0a0a1a 0%, #0f1f40 100%); border-bottom: 2px solid rgba(29,155,240,0.35);">
+        <div class="container">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <i class="bi bi-twitter-x fs-4" style="color: #1d9bf0;"></i>
+                <span class="badge" style="background: rgba(29,155,240,0.2); color: #1d9bf0; font-size: 0.7rem; letter-spacing: 0.06em; border: 1px solid rgba(29,155,240,0.4);">ADMIN</span>
+            </div>
+            <h1 class="display-6 fw-bold text-white mb-1">X Handles Monitor</h1>
+            <p class="mb-0" style="color: rgba(255,255,255,0.55);">Manage the list of X (Twitter) accounts whose posts appear on the public X Posts feed.</p>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <div class="row g-4">
+
+            <!-- Edit form -->
+            <div class="col-lg-7">
+                <div class="admin-card p-4">
+                    <h5 class="text-white mb-1"><i class="bi bi-pencil-square me-2 text-info"></i>Update Handle List</h5>
+                    <p class="text-muted mb-3" style="font-size: 0.82rem;">Enter one handle per line (the @ is optional). Saving replaces the entire list.</p>
+                    <form method="post" action="{{ url_for('admin_x_handles') }}">
+                        <div class="mb-3">
+                            <label for="handles" class="form-label text-secondary" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;">Handles (one per line)</label>
+                            <textarea
+                                id="handles"
+                                name="handles"
+                                class="form-control handle-area"
+                                rows="12"
+                                placeholder="elonmusk&#10;realDonaldTrump&#10;TuckerCarlson"
+                            >{{ handles_text }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>Save Handle List
+                        </button>
+                        <a href="{{ url_for('x_posts') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-eye me-1"></i>View X Posts Feed
+                        </a>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current list preview -->
+            <div class="col-lg-5">
+                <div class="admin-card p-4 h-100">
+                    <h5 class="text-white mb-3">
+                        <i class="bi bi-list-check me-2" style="color: #1d9bf0;"></i>
+                        Currently Monitored
+                        <span class="badge bg-secondary ms-2">{{ handles|length }}</span>
+                    </h5>
+                    {% if handles %}
+                        <div>
+                            {% for h in handles %}
+                                <span class="handle-pill">@{{ h.handle }}</span>
+                            {% endfor %}
+                        </div>
+                        <p class="text-muted mt-3 mb-0" style="font-size: 0.78rem;">
+                            <i class="bi bi-info-circle me-1"></i>Posts from these handles appear on the public feed for the last 24 hours.
+                        </p>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
+                            <p class="text-muted mb-0">No handles configured yet.</p>
+                            <p class="text-muted" style="font-size: 0.82rem;">Add some using the form on the left.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-4 p-3 rounded" style="background: rgba(29,155,240,0.06); border: 1px solid rgba(29,155,240,0.18);">
+            <p class="mb-1 text-white" style="font-size: 0.85rem;"><i class="bi bi-shield-lock me-2 text-info"></i><strong>API Token Note</strong></p>
+            <p class="mb-0 text-muted" style="font-size: 0.8rem;">
+                Live posts require an <code>X_BEARER_TOKEN</code> environment variable to be set. Without it the public feed will show a friendly error message instead of posts.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
