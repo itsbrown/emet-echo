@@ -133,7 +133,7 @@ with app.app_context():
         _backfill_orders = _EO.query.filter(
             _EO.ai_summary.isnot(None),
             _EO.ai_quip.is_(None)
-        ).limit(20).all()
+        ).limit(50).all()
         for _o in _backfill_orders:
             try:
                 _gen_quip(_o)
@@ -245,10 +245,10 @@ def initialize_data():
         news_data["trending"] = stored_articles
         news_data["last_updated"] = datetime.now()
         
-        # Initialize executive orders database with fresh data from Federal Register API
+        # Initialize executive orders database incrementally (fetch full set if empty,
+        # otherwise only add orders newer than the latest already stored)
         from executive_orders import initialize_executive_orders
-        # Force refresh to ensure we have the latest data from Federal Register API
-        initialize_executive_orders(force_refresh=True)
+        initialize_executive_orders(force_refresh=False)
         
         logger.info(f"Initialized with {len(stored_articles)} trending articles")
     except Exception as e:
@@ -327,7 +327,7 @@ def index():
     # Fetch EO issuance stats for patterns summary
     try:
         from models import ExecutiveOrder
-        eo_records = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc()).limit(15).all()
+        eo_records = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc()).all()
         total_eo_count = ExecutiveOrder.query.count()
         
         recent_eos = [
@@ -730,24 +730,22 @@ def refresh_trending():
 
 @app.route('/refresh-executive-orders')
 def refresh_executive_orders():
-    """Manually refresh executive orders from Federal Register API"""
+    """Incrementally refresh executive orders from Federal Register API (adds new ones only)"""
     try:
-        # Import here to avoid circular imports
         from executive_orders import initialize_executive_orders
-        
-        # Force refresh of executive orders
-        initialize_executive_orders(force_refresh=True)
-        
-        # Get the count of orders after refresh
+
+        # Incremental refresh: only fetch orders newer than what is already stored
+        initialize_executive_orders(force_refresh=False)
+
         from models import ExecutiveOrder
         new_count = ExecutiveOrder.query.count()
-        
-        flash(f"Executive orders refreshed successfully! Retrieved {new_count} orders from Federal Register API.", "success")
+
+        flash(f"Executive orders refreshed successfully! {new_count} orders now in database.", "success")
     except Exception as e:
         logger.error(f"Error refreshing executive orders: {str(e)}")
         db.session.rollback()
         flash(f"Error refreshing executive orders: {str(e)}", "danger")
-    
+
     return redirect(url_for('executive_orders'))
 
 @app.route('/executive-orders')

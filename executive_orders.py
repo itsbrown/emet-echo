@@ -56,100 +56,111 @@ SAMPLE_EXECUTIVE_ORDERS = [
     }
 ]
 
-def fetch_executive_orders(limit=10):
+def fetch_executive_orders(since_date=None):
     """
-    Fetch executive orders from the Federal Register API
-    
+    Fetch executive orders from the Federal Register API via pagination.
+    Fetches all executive orders signed since January 20, 2025 (or since
+    since_date if provided for incremental updates).
+
     Args:
-        limit: Maximum number of executive orders to fetch (default: 10)
-        
+        since_date: Optional datetime; only fetch orders signed after this date.
+                    If None, fetches all orders from January 20, 2025 onward.
+
     Returns:
         List of executive order dictionaries
     """
     try:
-        # Federal Register API for presidential documents
         base_url = "https://www.federalregister.gov/api/v1/documents"
-        
-        # Parameters for the API request
-        params = {
-            "conditions[presidential_document_type_id]": 2,  # 2 = Executive Order
-            "conditions[type]": "PRESDOCU",  # Presidential Document
-            "order": "newest",
-            "per_page": limit,
-            "fields[]": ["citation", "document_number", "end_page", "html_url", 
-                         "body_html_url", "pdf_url", "publication_date", 
-                         "signing_date", "start_page", "title", "raw_text_url", 
-                         "disposition_notes", "executive_order_number"]
-        }
-        
-        logger.info(f"Fetching executive orders from Federal Register API")
-        response = requests.get(base_url, params=params)
-        
-        if response.status_code != 200:
-            logger.error(f"Failed to fetch executive orders: Status code {response.status_code}")
-            return SAMPLE_EXECUTIVE_ORDERS  # Fallback to sample data if API fails
-        
-        results = response.json().get("results", [])
-        logger.info(f"Successfully fetched {len(results)} executive orders from Federal Register API")
-        
-        # Transform the API response into our expected format
+
+        start_date = since_date.strftime('%Y-%m-%d') if since_date else "2025-01-20"
+
+        fields = [
+            "citation", "document_number", "end_page", "html_url",
+            "body_html_url", "pdf_url", "publication_date",
+            "signing_date", "start_page", "title", "raw_text_url",
+            "disposition_notes", "executive_order_number"
+        ]
+
+        all_results = []
+        page = 1
+
+        while True:
+            params = {
+                "conditions[presidential_document_type_id]": 2,
+                "conditions[type]": "PRESDOCU",
+                "conditions[signing_date][gte]": start_date,
+                "order": "newest",
+                "per_page": 100,
+                "page": page,
+                "fields[]": fields
+            }
+
+            logger.info(f"Fetching executive orders page {page} from Federal Register API (since {start_date})")
+            response = requests.get(base_url, params=params, timeout=30)
+
+            if response.status_code != 200:
+                logger.error(f"Failed to fetch executive orders page {page}: Status code {response.status_code}")
+                break
+
+            data = response.json()
+            results = data.get("results", [])
+            all_results.extend(results)
+
+            total_pages = data.get("total_pages", 1)
+            logger.info(f"Fetched page {page}/{total_pages} — {len(results)} orders on this page")
+
+            if page >= total_pages:
+                break
+
+            page += 1
+
+        logger.info(f"Total executive orders fetched from API: {len(all_results)}")
+
+        if not all_results:
+            logger.info("API returned zero executive orders for the given date range — nothing to import")
+            return []
+
         executive_orders = []
-        for order in results:
-            # Get the full text of the executive order
+        for order in all_results:
             full_text = ""
             if "raw_text_url" in order and order["raw_text_url"]:
                 try:
-                    text_response = requests.get(order["raw_text_url"])
+                    text_response = requests.get(order["raw_text_url"], timeout=30)
                     if text_response.status_code == 200:
-                        # Clean the text - remove null characters (0x00) that cause database errors
                         raw_text = text_response.text
                         if raw_text:
-                            # Remove null characters (0x00)
                             full_text = raw_text.replace('\x00', '')
-                            # Normalize line endings
                             full_text = full_text.replace('\r\n', '\n').replace('\r', '\n')
-                            # Replace any other problematic characters
                             full_text = ''.join(c if ord(c) >= 32 or c in '\n\t' else ' ' for c in full_text)
-                            # Extract plain text from HTML document
                             full_text = extract_plain_text(full_text)
                 except Exception as e:
                     logger.error(f"Error fetching full text: {str(e)}")
-            
-            # Format the date (API may provide signing_date or publication_date)
+
             date_str = order.get("signing_date") or order.get("publication_date", "")
-            
-            # Extract the EO number
+
             eo_number = order.get("executive_order_number", "")
             if not eo_number and "document_number" in order:
                 eo_number = order["document_number"]
-            
-            # Create the executive order dictionary
+
             executive_order = {
                 "order_number": f"EO-{eo_number}",
                 "title": order.get("title", "Executive Order"),
                 "date_issued": date_str,
                 "full_text": full_text,
-                "summary": "",  # Will be generated by summarize_order function
+                "summary": "",
                 "status": "Active",
                 "category": "Federal Regulation",
                 "url": order.get("html_url", ""),
                 "source": "Federal Register"
             }
-            
+
             executive_orders.append(executive_order)
-        
-        # If we got results from the API, return them
-        if executive_orders:
-            return executive_orders
-        
-        # Fallback to sample data if API returned empty results
-        logger.warning("API returned no executive orders, using sample data as fallback")
-        return SAMPLE_EXECUTIVE_ORDERS
-        
+
+        return executive_orders
+
     except Exception as e:
         logger.error(f"Error fetching executive orders: {str(e)}")
-        # Fallback to sample data if there's an error
-        return SAMPLE_EXECUTIVE_ORDERS
+        return []
 
 def summarize_order(order_text, style="journalist"):
     """
@@ -239,28 +250,42 @@ def generate_twitter_summary_for_order(order_text):
 
 def initialize_executive_orders(force_refresh=False):
     """
-    Initialize the database with executive orders
-    
+    Initialize or incrementally update the database with executive orders.
+
+    On an empty database (or when force_refresh=True after clearing), fetches all
+    executive orders from January 20, 2025 onward via paginated API calls.
+
+    On subsequent runs, only fetches orders newer than the most recent one already
+    stored — no unnecessary deletes or re-fetches.
+
     Args:
-        force_refresh: If True, delete existing orders and fetch new ones
+        force_refresh: If True, delete all existing records and re-fetch everything.
     """
     try:
-        # Check if we already have orders in the database
         existing_count = ExecutiveOrder.query.count()
-        
-        # If we have orders and aren't forcing a refresh, skip initialization
-        if existing_count > 0 and not force_refresh:
-            logger.info(f"Found {existing_count} executive orders in database, skipping initialization")
-            return
-        
-        # If force_refresh is True, delete existing orders
+
         if force_refresh and existing_count > 0:
-            logger.info(f"Forcing refresh: Deleting {existing_count} existing executive orders")
+            logger.info(f"force_refresh=True: deleting {existing_count} existing executive orders")
             ExecutiveOrder.query.delete()
             db.session.commit()
-        
+            existing_count = 0
+
+        # Determine the since_date for incremental updates
+        since_date = None
+        if existing_count > 0:
+            latest_order = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc()).first()
+            if latest_order and latest_order.date_issued:
+                # Advance by one day so we only fetch strictly newer orders
+                from datetime import timedelta as _td
+                since_date = latest_order.date_issued + _td(days=1)
+                logger.info(f"Incremental update: fetching orders newer than {latest_order.date_issued.date()} (since {since_date.date()})")
+            else:
+                logger.info("No dated orders found; fetching full dataset from 2025-01-20")
+        else:
+            logger.info("Empty database: fetching all executive orders from 2025-01-20")
+
         # Fetch executive orders from Federal Register API
-        orders = fetch_executive_orders(limit=15)  # Fetch the latest 15 executive orders
+        orders = fetch_executive_orders(since_date=since_date)
         logger.info(f"Fetched {len(orders)} executive orders from Federal Register API")
         
         # Process and store each order
