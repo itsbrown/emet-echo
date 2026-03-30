@@ -977,6 +977,185 @@ def generate_twitter_summary():
         logger.error(f"Error generating Twitter summary: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/eo-evolution')
+def eo_evolution():
+    """EO Evolution: Policy Patterns Over Time"""
+    try:
+        from models import ExecutiveOrder
+        from sqlalchemy import func
+        from eo_history import HISTORICAL_EO_DATA, ANNOTATION_MILESTONES, TRUMP_II_INAUGURATION
+        from home_ai import generate_eo_pattern_analysis
+
+        inauguration_date = datetime.strptime(TRUMP_II_INAUGURATION, '%Y-%m-%d')
+
+        trump2_orders = (
+            ExecutiveOrder.query
+            .filter(ExecutiveOrder.date_issued >= inauguration_date)
+            .order_by(ExecutiveOrder.date_issued.asc())
+            .all()
+        )
+
+        trump2_cumulative = {}
+        running_count = 0
+        for order in trump2_orders:
+            if order.date_issued:
+                day_n = (order.date_issued - inauguration_date).days + 1
+                if day_n > 0:
+                    running_count += 1
+                    trump2_cumulative[day_n] = running_count
+
+        max_day = max(trump2_cumulative.keys()) if trump2_cumulative else 365
+        max_day = max(max_day, 90)
+
+        chart_labels = list(range(1, max_day + 1))
+
+        def build_cumulative_series(monthly_counts, max_day):
+            daily = []
+            for count in monthly_counts:
+                per_day = count / 30.0
+                daily.extend([per_day] * 30)
+            running = 0.0
+            series = []
+            for day in range(1, max_day + 1):
+                idx = day - 1
+                if idx < len(daily):
+                    running += daily[idx]
+                series.append(round(running, 1))
+            return series
+
+        chart_datasets = []
+        for admin_name, admin_data in HISTORICAL_EO_DATA.items():
+            series = build_cumulative_series(admin_data['monthly_counts'], max_day)
+            chart_datasets.append({
+                "label": admin_name,
+                "data": series,
+                "borderColor": admin_data['border_color'],
+                "backgroundColor": admin_data['color'],
+                "tension": 0.3,
+                "pointRadius": 0,
+                "borderWidth": 2,
+            })
+
+        prev = None
+        trump2_filled = []
+        for d in range(1, max_day + 1):
+            val = trump2_cumulative.get(d)
+            if val is not None:
+                prev = val
+            trump2_filled.append(prev)
+
+        chart_datasets.append({
+            "label": "Trump II (2025)",
+            "data": trump2_filled,
+            "borderColor": "rgba(255, 193, 7, 1)",
+            "backgroundColor": "rgba(255, 193, 7, 0.15)",
+            "tension": 0.3,
+            "pointRadius": 0,
+            "borderWidth": 3,
+        })
+
+        monthly_rows = (
+            db.session.query(
+                func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM').label('month'),
+                func.count(ExecutiveOrder.id).label('cnt')
+            )
+            .filter(
+                ExecutiveOrder.date_issued.isnot(None),
+                ExecutiveOrder.date_issued >= inauguration_date
+            )
+            .group_by(func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM'))
+            .order_by(func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM'))
+            .all()
+        )
+        trump2_monthly = [{"month": row.month, "count": row.cnt} for row in monthly_rows]
+
+        category_rows = (
+            db.session.query(
+                ExecutiveOrder.category,
+                func.count(ExecutiveOrder.id).label('cnt')
+            )
+            .filter(
+                ExecutiveOrder.category.isnot(None),
+                ExecutiveOrder.date_issued >= inauguration_date
+            )
+            .group_by(ExecutiveOrder.category)
+            .order_by(func.count(ExecutiveOrder.id).desc())
+            .all()
+        )
+
+        def split_categories(cat_str):
+            if not cat_str:
+                return []
+            return [c.strip() for c in cat_str.replace(';', ',').split(',') if c.strip()]
+
+        category_breakdown = {}
+        for row in category_rows:
+            for cat in split_categories(row.category):
+                category_breakdown[cat] = category_breakdown.get(cat, 0) + row.cnt
+
+        stacked_months = [item['month'] for item in trump2_monthly]
+        top_categories = sorted(category_breakdown.items(), key=lambda x: -x[1])[:6]
+        top_cat_names = [c[0] for c in top_categories]
+
+        cat_colors = [
+            "rgba(255, 193, 7, 0.8)",
+            "rgba(54, 162, 235, 0.8)",
+            "rgba(255, 99, 132, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+            "rgba(153, 102, 255, 0.8)",
+            "rgba(255, 159, 64, 0.8)",
+        ]
+
+        stacked_datasets = []
+        for i, cat_name in enumerate(top_cat_names):
+            monthly_cat_rows = (
+                db.session.query(
+                    func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM').label('month'),
+                    func.count(ExecutiveOrder.id).label('cnt')
+                )
+                .filter(
+                    ExecutiveOrder.date_issued.isnot(None),
+                    ExecutiveOrder.date_issued >= inauguration_date,
+                    ExecutiveOrder.category.ilike(f'%{cat_name}%')
+                )
+                .group_by(func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM'))
+                .order_by(func.to_char(ExecutiveOrder.date_issued, 'YYYY-MM'))
+                .all()
+            )
+            month_map = {row.month: row.cnt for row in monthly_cat_rows}
+            data = [month_map.get(m, 0) for m in stacked_months]
+            stacked_datasets.append({
+                "label": cat_name,
+                "data": data,
+                "backgroundColor": cat_colors[i % len(cat_colors)],
+                "borderColor": cat_colors[i % len(cat_colors)].replace('0.8', '1'),
+                "borderWidth": 1,
+            })
+
+        pattern_cards = generate_eo_pattern_analysis(
+            trump2_monthly,
+            HISTORICAL_EO_DATA,
+            category_breakdown
+        )
+
+        context = {
+            "chart_labels": chart_labels,
+            "chart_datasets": chart_datasets,
+            "stacked_months": stacked_months,
+            "stacked_datasets": stacked_datasets,
+            "pattern_cards": pattern_cards,
+            "annotation_milestones": ANNOTATION_MILESTONES,
+            "total_orders": len(trump2_orders),
+            "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        return render_template('eo_evolution.html', **context)
+
+    except Exception as e:
+        logger.error(f"Error loading EO Evolution page: {e}")
+        flash(f"Error loading EO Evolution page: {str(e)}", "danger")
+        return redirect(url_for('executive_orders'))
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('error.html', error="Page not found"), 404
