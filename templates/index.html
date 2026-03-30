@@ -51,7 +51,7 @@
                 <p class="text-white-50 mb-0">Support truth-focused journalism with our exclusive patriotic gear collection.</p>
             </div>
             <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                <a href="https://shop.emetecho.com" target="_blank" class="btn btn-light btn-lg">
+                <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="btn btn-light btn-lg">
                     <i class="bi bi-cart3 me-2"></i> Visit Shop
                 </a>
             </div>
@@ -115,7 +115,7 @@
                 <i class="bi bi-graph-up-arrow me-2"></i>
                 Top Stories This Week
             </h2>
-            <p class="text-muted small mt-1">A curated selection from our aggregated news sources</p>
+            <p class="text-muted small mt-1">Our AI surfaces what context mainstream coverage left out.</p>
             <hr>
         </div>
     </div>
@@ -130,7 +130,7 @@
                         <!-- Article Image -->
                         <div class="article-img-container position-relative">
                             {% if article.urlToImage %}
-                                <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}">
+                                <img src="{{ article.urlToImage }}" class="article-img" alt="{{ article.title }}" loading="lazy">
                             {% else %}
                                 <div class="img-placeholder">
                                     <i class="bi bi-image"></i>
@@ -160,10 +160,18 @@
                                     No summary available.
                                 {% endif %}
                             </p>
+
+                            <!-- Source attribution (secondary) -->
+                            {% if article.source and article.source.name %}
+                            <p class="small text-muted mb-2">
+                                <i class="bi bi-newspaper me-1"></i>
+                                <small>{{ article.source.name }}</small>
+                            </p>
+                            {% endif %}
                             
                             <!-- Action Buttons -->
                             <div class="d-flex justify-content-between align-items-center mt-3">
-                                <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <a href="{{ article.url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
                                     Read Original
                                     <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
@@ -234,7 +242,7 @@
                                     <span class="badge bg-danger mb-2">Shop Merchandise</span>
                                     <h5 class="card-title text-white text-truncate" title="{{ product.title }}">{{ product.title }}</h5>
                                     <p class="card-text text-danger fw-bold fs-5">{{ product.price_display }}</p>
-                                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-danger w-100">
+                                    <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="btn btn-danger w-100">
                                         <i class="bi bi-cart3 me-1"></i> Shop Now
                                     </a>
                                 </div>
@@ -362,6 +370,7 @@
                 <i class="bi bi-stars me-2"></i>
                 Digital Newsroom
             </h2>
+            <p class="text-muted small mt-1">Our AI surfaces what context mainstream coverage left out.</p>
             <hr>
         </div>
     </div>
@@ -370,7 +379,7 @@
         <div class="col-md-7 mb-4">
             <div class="card">
                 <div class="card-body p-0">
-                    <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f" class="img-fluid w-100" alt="Digital newsroom">
+                    <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f" class="img-fluid w-100" alt="Digital newsroom" loading="lazy">
                     <div class="p-4">
                         <h3>Why Conservative News Matters</h3>
                         <p>With mainstream media often aligned with liberal perspectives, conservative news sources provide an important balance. Our platform aggregates content exclusively from trusted conservative outlets that prioritize truth, traditional values, and accurate reporting.</p>
@@ -382,7 +391,7 @@
         <div class="col-md-5">
             <div class="card mb-4">
                 <div class="card-body p-0">
-                    <img src="https://images.unsplash.com/photo-1495020689067-958852a7765e" class="img-fluid w-100" alt="Newspapers">
+                    <img src="https://images.unsplash.com/photo-1495020689067-958852a7765e" class="img-fluid w-100" alt="Newspapers" loading="lazy">
                     <div class="p-3">
                         <h4>Breaking Through Media Bias</h4>
                         <p>Our platform helps conservatives bypass mainstream media bias by focusing on news sources that never pushed the Russia collusion narrative.</p>
@@ -392,7 +401,7 @@
             
             <div class="card">
                 <div class="card-body p-0">
-                    <img src="https://images.unsplash.com/photo-1476242906366-d8eb64c2f661" class="img-fluid w-100" alt="Digital newspaper">
+                    <img src="https://images.unsplash.com/photo-1476242906366-d8eb64c2f661" class="img-fluid w-100" alt="Digital newspaper" loading="lazy">
                     <div class="p-3">
                         <h4>Why Trusted Sources Matter</h4>
                         <p>In an era of information overload, verifying news sources is more important than ever.</p>
@@ -417,7 +426,7 @@
     
     <div class="row align-items-center">
         <div class="col-md-6 mb-4 mb-md-0">
-            <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984" class="img-fluid rounded" alt="Content sharing">
+            <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984" class="img-fluid rounded" alt="Content sharing" loading="lazy">
         </div>
         
         <div class="col-md-6">

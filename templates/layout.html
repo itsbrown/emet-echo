@@ -11,10 +11,6 @@
       gtag('config', 'G-3RSW54KBPR');
     </script>
     
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3252817577059646"
-     crossorigin="anonymous"></script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Emet Echo - Trusted Conservative &amp; Independent News{% endblock %}</title>
@@ -27,6 +23,8 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Preload hero background image for LCP -->
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1682687981603-ae874bf432f2?q=80">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -103,13 +101,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-danger fw-bold" href="https://shop.emetecho.com" target="_blank">
+                        <a class="nav-link text-danger fw-bold" href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-bag-heart me-1"></i> Shop
-                        </a>
-                    </li>
-                    <li class="nav-item d-lg-none">
-                        <a class="nav-link text-warning fw-bold" href="/executive-orders">
-                            <i class="bi bi-arrow-right me-1"></i> GO TO EXECUTIVE ORDERS
                         </a>
                     </li>
                 </ul>
@@ -155,7 +148,7 @@
                     <p class="text-white-50 mb-0">Show your support for truth-focused news with our exclusive merchandise collection.</p>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <a href="https://shop.emetecho.com" target="_blank" class="btn btn-danger btn-lg">
+                    <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="btn btn-danger btn-lg">
                         <i class="bi bi-cart3 me-2"></i> Visit Shop
                     </a>
                 </div>
@@ -176,10 +169,11 @@
                         </small>
                     </p>
                     <p>
-                        <a href="https://shop.emetecho.com" target="_blank" class="text-danger text-decoration-none">
+                        <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="text-danger text-decoration-none">
                             <i class="bi bi-bag-heart me-1"></i> Shop Merchandise
                         </a>
                     </p>
+                    <p><small class="text-muted">Sources linked — our analysis adds context.</small></p>
                 </div>
             </div>
         </div>
@@ -206,5 +200,9 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3252817577059646"
+     crossorigin="anonymous"></script>
 </body>
 </html>

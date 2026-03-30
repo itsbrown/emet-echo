@@ -74,7 +74,7 @@
                 <div class="col-md-4 mt-3 mt-md-0">
                     <div class="d-grid gap-2">
                         {% if order.url %}
-                        <a href="{{ order.url }}" target="_blank" rel="noopener" class="btn btn-warning text-dark">
+                        <a href="{{ order.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-warning text-dark">
                             <i class="bi bi-file-earmark-pdf me-2"></i>Official Document
                         </a>
                         {% endif %}
@@ -102,6 +102,7 @@
             {% else %}
             <p class="text-muted mb-0">AI analysis not yet available for this executive order. Check back later.</p>
             {% endif %}
+            <p class="text-muted small mt-3 mb-0">Sources linked — our analysis adds context.</p>
         </div>
     </div>
 

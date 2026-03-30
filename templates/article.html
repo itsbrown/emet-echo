@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         Share
                     </button>
                     
-                    <a href="{{ article.url }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank">
+                    <a href="{{ article.url }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank" rel="noopener noreferrer">
                         <i class="bi bi-box-arrow-up-right"></i>
                         Read original
                     </a>
@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             No AI summary available for this article.
                         {% endif %}
                     </p>
+                    <p class="text-muted small mb-0">Sources linked — our analysis adds context.</p>
                 </div>
             </div>
         </div>
@@ -225,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div class="text-center mt-4">
-                        <a href="{{ article.url }}" class="btn btn-primary btn-lg" target="_blank">
+                        <a href="{{ article.url }}" class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-box-arrow-up-right me-2"></i>
                             Read full article at {{ article.source.name if article.source and article.source.name else 'source' }}
                         </a>
@@ -247,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <!-- Sample related content -->
                 <div class="col">
                     <div class="card h-100">
-                        <img src="https://images.unsplash.com/photo-1584714268709-c3dd9c92b378" class="card-img-top" alt="News headline">
+                        <img src="https://images.unsplash.com/photo-1584714268709-c3dd9c92b378" class="card-img-top" alt="News headline" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">Staying Informed in the Digital Age</h5>
                             <p class="card-text">Tips and strategies for managing information overload while staying informed.</p>
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="col">
                     <div class="card h-100">
-                        <img src="https://images.unsplash.com/photo-1611287158945-58d7fa81bb88" class="card-img-top" alt="News headline">
+                        <img src="https://images.unsplash.com/photo-1611287158945-58d7fa81bb88" class="card-img-top" alt="News headline" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">The Role of AI in Modern Journalism</h5>
                             <p class="card-text">How artificial intelligence is changing news creation and consumption.</p>
@@ -267,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="col">
                     <div class="card h-100">
-                        <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07" class="card-img-top" alt="Content sharing">
+                        <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07" class="card-img-top" alt="Content sharing" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">Responsible News Sharing</h5>
                             <p class="card-text">Why critical thinking matters before sharing news on social media.</p>
