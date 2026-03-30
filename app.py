@@ -316,7 +316,7 @@ def index():
         articles = news_data["trending"]
     
     # Generate AI content using full article pool (pre-cap)
-    from home_ai import generate_weekly_digest, generate_missed_angles, generate_eo_patterns_summary
+    from home_ai import generate_weekly_digest, generate_missed_angles, generate_eo_patterns_summary, generate_eo_pattern_analysis
     
     weekly_digest = generate_weekly_digest(articles)
     missed_angles = generate_missed_angles(articles)
@@ -358,9 +358,35 @@ def index():
                 'Biden (1 term)': 162,
             }
         }
+
+        # Derive trump2_monthly and category_breakdown from eo_records already loaded
+        from eo_history import HISTORICAL_EO_DATA, TRUMP_II_INAUGURATION
+        inauguration_date_home = datetime.strptime(TRUMP_II_INAUGURATION, '%Y-%m-%d')
+
+        def _split_cats(cat_str):
+            if not cat_str:
+                return []
+            return [c.strip() for c in cat_str.replace(';', ',').split(',') if c.strip()]
+
+        monthly_counts_home = {}
+        category_breakdown_home = {}
+        for eo in eo_records:
+            if eo.date_issued and eo.date_issued >= inauguration_date_home:
+                month_key = eo.date_issued.strftime('%Y-%m')
+                monthly_counts_home[month_key] = monthly_counts_home.get(month_key, 0) + 1
+                for cat in _split_cats(eo.category):
+                    category_breakdown_home[cat] = category_breakdown_home.get(cat, 0) + 1
+
+        trump2_monthly_home = [
+            {"month": m, "count": c}
+            for m, c in sorted(monthly_counts_home.items())
+        ]
+
+        pattern_cards = generate_eo_pattern_analysis(trump2_monthly_home, HISTORICAL_EO_DATA, category_breakdown_home)
     except Exception as eo_err:
         logger.error(f"Error fetching EO data for home AI: {eo_err}")
         eo_stats = {'total_count': 0, 'recent_eos': [], 'issuance_rate_per_day': 0.0, 'admin_historical': {}}
+        pattern_cards = []
     
     eo_patterns_summary = generate_eo_patterns_summary(eo_stats)
     
@@ -399,6 +425,7 @@ def index():
                           weekly_digest=weekly_digest,
                           missed_angles=missed_angles,
                           eo_patterns_summary=eo_patterns_summary,
+                          pattern_cards=pattern_cards,
                           latest_eos=latest_eos,
                           x_posts=x_posts_list)
 
