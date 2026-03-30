@@ -19,6 +19,9 @@ class Article(db.Model):
     url_to_image = db.Column(db.String(500))
     category = db.Column(db.String(100))
     source_type = db.Column(db.String(50))  # 'conservative' or 'independent'
+    indie_vs_mainstream = db.Column(db.Text)  # AI-generated indie vs. mainstream comparison (JSON)
+    bias_score = db.Column(db.Integer)  # 0-100 bias score
+    omission_callouts = db.Column(db.Text)  # JSON list of omission callout strings
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

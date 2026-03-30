@@ -176,6 +176,43 @@
                                     Share
                                 </button>
                             </div>
+
+                            <!-- Indie vs Mainstream Teaser (top 6 only, only if analysis available) -->
+                            {% if loop.index <= 6 and article.bias_score is not none and article.ivm %}
+                                <div class="accordion mt-3" id="ivm-accordion-{{ loop.index }}">
+                                    <div class="accordion-item border-0" style="background: transparent;">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed py-2 px-0" type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#ivm-collapse-{{ loop.index }}"
+                                                    aria-expanded="false"
+                                                    style="background: transparent; box-shadow: none; font-size: 0.82rem; color: inherit;">
+                                                <i class="bi bi-layout-split me-2 text-info"></i>
+                                                <strong>Indie vs. Mainstream</strong>
+                                                {% if article.bias_score < 40 %}
+                                                    <span class="badge bg-success ms-2" style="font-size: 0.7rem;">Bias: {{ article.bias_score }}</span>
+                                                {% elif article.bias_score <= 70 %}
+                                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">Bias: {{ article.bias_score }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Bias: {{ article.bias_score }}</span>
+                                                {% endif %}
+                                            </button>
+                                        </h2>
+                                        <div id="ivm-collapse-{{ loop.index }}" class="accordion-collapse collapse"
+                                             data-bs-parent="#ivm-accordion-{{ loop.index }}">
+                                            <div class="accordion-body px-0 pt-1 pb-2">
+                                                <p class="mb-1" style="font-size: 0.82rem; line-height: 1.5;">
+                                                    <span class="text-warning fw-semibold">Indie:</span>
+                                                    {{ article.ivm.indie[:150] }}{% if article.ivm.indie|length > 150 %}…{% endif %}
+                                                </p>
+                                                <a href="{{ url_for('article_detail', article_url=article.url) }}" class="btn btn-sm btn-outline-info mt-1" style="font-size: 0.75rem;">
+                                                    Full Analysis <i class="bi bi-arrow-right ms-1"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

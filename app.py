@@ -78,6 +78,31 @@ with app.app_context():
     except Exception as _mig_err:
         logger.warning(f"Schema migration skipped or failed (may be normal): {_mig_err}")
 
+# Auto-migrate: ensure new Article columns exist on every startup
+with app.app_context():
+    try:
+        with db.engine.connect() as conn:
+            from sqlalchemy import text as _text
+            conn.execute(_text("""
+                ALTER TABLE article
+                    ADD COLUMN IF NOT EXISTS indie_vs_mainstream TEXT,
+                    ADD COLUMN IF NOT EXISTS bias_score INTEGER,
+                    ADD COLUMN IF NOT EXISTS omission_callouts TEXT
+            """))
+            conn.commit()
+        logger.info("Article schema migration applied (IF NOT EXISTS).")
+    except Exception as _mig_err2:
+        logger.warning(f"Article schema migration skipped or failed (may be normal): {_mig_err2}")
+
+def _safe_json_loads(value, default=None):
+    """Parse JSON string safely, returning default on failure or when value is falsy."""
+    if not value:
+        return default
+    try:
+        return json.loads(value)
+    except Exception:
+        return default
+
 # Ensure user has a session ID
 def get_or_create_user_id():
     if 'user_id' not in session:
@@ -210,7 +235,10 @@ def index():
                     'summary': article.summary,
                     'urlToImage': article.url_to_image,
                     'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
-                    'source_type': article.source_type
+                    'source_type': article.source_type,
+                    'bias_score': article.bias_score,
+                    'ivm': _safe_json_loads(article.indie_vs_mainstream),
+                    'omission_callouts': _safe_json_loads(article.omission_callouts, default=[])
                 }
                 articles.append(article_dict)
             
@@ -458,6 +486,29 @@ def article_detail(article_url):
         db_article = Article.query.filter_by(url=article_url).first()
         
         if db_article:
+            # Lazy-generate indie vs mainstream analysis if not yet cached
+            if db_article.indie_vs_mainstream is None:
+                try:
+                    from article_analysis import generate_article_analysis
+                    generate_article_analysis(db_article)
+                except Exception as _aa_err:
+                    logger.error(f"Article analysis generation failed: {_aa_err}")
+
+            # Parse indie_vs_mainstream JSON for template
+            ivm = None
+            if db_article.indie_vs_mainstream:
+                try:
+                    ivm = json.loads(db_article.indie_vs_mainstream)
+                except Exception:
+                    ivm = None
+
+            omission_callouts = []
+            if db_article.omission_callouts:
+                try:
+                    omission_callouts = json.loads(db_article.omission_callouts)
+                except Exception:
+                    omission_callouts = []
+
             # Convert DB article to dictionary format for template
             article = {
                 'title': db_article.title,
@@ -469,7 +520,10 @@ def article_detail(article_url):
                 'content': db_article.content,
                 'summary': db_article.summary,
                 'urlToImage': db_article.url_to_image,
-                'published_time': db_article.published_at.strftime("%B %d, %Y") if db_article.published_at else ''
+                'published_time': db_article.published_at.strftime("%B %d, %Y") if db_article.published_at else '',
+                'ivm': ivm,
+                'bias_score': db_article.bias_score,
+                'omission_callouts': omission_callouts
             }
         else:
             # If not found in DB, check in-memory cache
@@ -530,7 +584,11 @@ def article_detail(article_url):
         flash("Article not found", "danger")
         return redirect(url_for('index'))
     
-    return render_template('article.html', article=article)
+    ivm = article.get('ivm') if isinstance(article, dict) else None
+    bias_score = article.get('bias_score') if isinstance(article, dict) else None
+    omission_callouts = article.get('omission_callouts', []) if isinstance(article, dict) else []
+
+    return render_template('article.html', article=article, ivm=ivm, bias_score=bias_score, omission_callouts=omission_callouts)
 
 @app.route('/trump')
 def trump_news():
