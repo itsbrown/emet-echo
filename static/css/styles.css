@@ -231,6 +231,17 @@
     border-top: 3px solid var(--bs-danger);
 }
 
+/* Shop disabled state - global safety net.
+   pointer-events is kept active on the wrapper so Bootstrap tooltips
+   can still fire on hover; only the inner button child is blocked. */
+.shop-disabled {
+    cursor: not-allowed !important;
+}
+
+.shop-disabled > * {
+    pointer-events: none !important;
+}
+
 /* Footer */
 .footer {
     margin-top: 3rem;
