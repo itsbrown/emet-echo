@@ -330,6 +330,42 @@ def initialize_executive_orders(force_refresh=False):
         db.session.rollback()
 
 
+def generate_ai_quip(order):
+    """
+    Generate a punchy one-liner AI quip for an executive order.
+    ≤20 words, opinionated but fair, em-dash style.
+    Stores the result in order.ai_quip and commits to the database.
+    """
+    if not _openai_client:
+        logger.warning("OpenAI client not available — skipping ai_quip generation")
+        return
+
+    source_text = order.ai_summary or order.summary or order.title or ""
+    source_text = source_text[:1500]
+
+    prompt = f"""You are a sharp, independent political analyst. Write exactly ONE punchy sentence (≤20 words) summarising this executive order from an independent perspective. Use an em-dash (—) to split cause and consequence. Be opinionated but fair. Example style: "Cuts EPA drilling rules — energy prices may fall, but loopholes concern watchdogs."
+
+Executive Order: {order.order_number}
+Title: {order.title}
+Summary: {source_text}
+
+Return only the single sentence, no quotes, no punctuation other than the em-dash and a period at the end."""
+
+    try:
+        response = _openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0.7
+        )
+        quip = response.choices[0].message.content.strip().strip('"').strip("'")
+        order.ai_quip = quip
+        db.session.commit()
+        logger.info(f"ai_quip generated for {order.order_number}: {quip}")
+    except Exception as e:
+        logger.error(f"Error generating ai_quip for {order.order_number}: {e}")
+
+
 def generate_ai_analysis(order):
     """
     Generate AI analysis for an executive order using OpenAI.
@@ -390,6 +426,13 @@ Return only valid JSON, no markdown fences."""
 
         db.session.commit()
         logger.info(f"AI analysis generated and cached for {order.order_number}")
+
+        # Also generate the ai_quip if not already set
+        if not order.ai_quip:
+            try:
+                generate_ai_quip(order)
+            except Exception as _qe:
+                logger.warning(f"ai_quip generation failed after analysis for {order.order_number}: {_qe}")
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse OpenAI JSON response for {order.order_number}: {e}")

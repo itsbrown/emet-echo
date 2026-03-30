@@ -4,26 +4,116 @@
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+    .eo-dashboard-bg { background: #0d1117; }
+    .kpi-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        transition: border-color 0.2s;
+    }
+    .kpi-card:hover { border-color: rgba(255,255,255,0.2); }
+    .kpi-number { font-size: 2.5rem; font-weight: 800; line-height: 1.1; }
+    .kpi-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; }
+    .eo-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        transition: border-color 0.2s, transform 0.15s;
+    }
+    .eo-card:hover {
+        border-color: rgba(255,193,7,0.4);
+        transform: translateY(-2px);
+    }
+    .eo-quip-block {
+        background: rgba(255,193,7,0.07);
+        border-left: 3px solid #ffc107;
+        border-radius: 0 6px 6px 0;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: #f8d76e;
+        font-style: italic;
+    }
+    .eo-order-badge {
+        font-size: 0.7rem;
+        background: rgba(13,110,253,0.18);
+        border: 1px solid rgba(13,110,253,0.4);
+        color: #6ea8fe;
+        border-radius: 6px;
+        padding: 2px 7px;
+        font-weight: 600;
+    }
+    .eo-date-chip {
+        font-size: 0.72rem;
+        color: #6c757d;
+    }
+    .eo-category-tag {
+        font-size: 0.68rem;
+        background: rgba(102,16,242,0.18);
+        border: 1px solid rgba(102,16,242,0.3);
+        color: #c29ffa;
+        border-radius: 20px;
+        padding: 2px 9px;
+    }
+    .filter-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+    }
+    .filter-card .form-control,
+    .filter-card .form-select {
+        background: #161b22;
+        border-color: rgba(255,255,255,0.1);
+        color: #e6edf3;
+    }
+    .filter-card .form-control::placeholder { color: #6c757d; }
+    .filter-card .form-label { color: #8b949e; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart-card {
+        background: #0d1117;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+    }
+    .annotation-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+    .annotation-chip {
+        font-size: 0.72rem;
+        color: #8b949e;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .results-header {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-0">
+<div class="eo-dashboard-bg min-vh-100">
 
     <!-- Hero banner -->
-    <div class="eo-hero py-5" style="background: linear-gradient(135deg, #0a0a1a 0%, #0f3460 50%, #1a1a2e 100%); border-bottom: 3px solid var(--bs-warning);">
+    <div class="py-5" style="background: linear-gradient(135deg, #0a0a1a 0%, #0f3460 50%, #1a1a2e 100%); border-bottom: 2px solid rgba(255,193,7,0.4);">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-file-earmark-text fs-3 text-warning me-3"></i>
-                        <span class="badge bg-warning text-dark fs-6">Live Tracker</span>
+                    <div class="d-flex align-items-center mb-2 gap-2">
+                        <i class="bi bi-shield-fill-exclamation fs-4 text-warning"></i>
+                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem; letter-spacing: 0.06em;">LIVE TRACKER</span>
+                        <span class="badge bg-info text-dark" style="font-size: 0.7rem;">Federal Register API</span>
                     </div>
                     <h1 class="display-5 fw-bold text-white mb-2">Executive Order Intelligence Hub</h1>
-                    <p class="lead text-white-50 mb-3">AI-powered analysis of Trump executive orders — viewed through an independent lens, not a partisan one.</p>
-                    <p class="text-muted mb-0" style="font-size: 0.85rem;">
-                        <i class="bi bi-clock me-1"></i>Last updated: {{ last_updated }}
-                        &nbsp;&nbsp;<span class="badge bg-info">Source: Federal Register API</span>
-                    </p>
+                    <p class="lead mb-2" style="color: rgba(255,255,255,0.6);">AI-powered analysis of Trump executive orders — viewed through an independent lens, not a partisan one.</p>
+                    <p style="font-size: 0.8rem; color: #6c757d;"><i class="bi bi-clock me-1"></i>Last updated: {{ last_updated }}</p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                     <a href="{{ url_for('refresh_executive_orders') }}" class="btn btn-outline-warning btn-lg">
@@ -34,204 +124,185 @@
         </div>
     </div>
 
-    <div class="container mt-4">
+    <div class="container py-4">
 
-        <!-- Quick Stats bar -->
+        <!-- 4-KPI Stats Row -->
         <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4">
-                <div class="card border-0 shadow-sm text-center py-3" style="background: linear-gradient(135deg, #1a1a2e, #0f3460);">
-                    <div class="card-body p-2">
-                        <div class="display-6 fw-bold text-warning">{{ total_orders }}</div>
-                        <div class="text-muted small">Total Orders Tracked</div>
-                    </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card p-4 text-center h-100">
+                    <div class="kpi-number text-warning">{{ total_orders }}</div>
+                    <div class="kpi-label mt-1">Total Orders Tracked</div>
                 </div>
             </div>
-            <div class="col-6 col-md-4">
-                <div class="card border-0 shadow-sm text-center py-3" style="background: linear-gradient(135deg, #1a1a2e, #0f3460);">
-                    <div class="card-body p-2">
-                        <div class="display-6 fw-bold text-success">{{ active_this_month }}</div>
-                        <div class="text-muted small">Active This Month</div>
-                    </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card p-4 text-center h-100">
+                    <div class="kpi-number text-success">{{ active_this_month }}</div>
+                    <div class="kpi-label mt-1">Orders This Month</div>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
-                <div class="card border-0 shadow-sm text-center py-3" style="background: linear-gradient(135deg, #1a1a2e, #0f3460);">
-                    <div class="card-body p-2">
-                        <div class="fw-bold text-info fs-5">{{ most_common_category }}</div>
-                        <div class="text-muted small">Most Common Category</div>
-                    </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card p-4 text-center h-100">
+                    <div class="kpi-number text-info" style="font-size: 1.6rem;">{{ most_common_category or '—' }}</div>
+                    <div class="kpi-label mt-1">Top Category</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card p-4 text-center h-100">
+                    <div class="kpi-number" style="color: {% if poll_sentiment_pct >= 50 %}#3fb950{% else %}#f85149{% endif %};">{{ poll_sentiment_pct }}%</div>
+                    <div class="kpi-label mt-1">Community "Helps" Sentiment</div>
                 </div>
             </div>
         </div>
 
-        <!-- Patterns & Cycles Chart -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #0f3460, #1a1a2e);">
-                <i class="bi bi-graph-up-arrow fs-5 text-warning me-2"></i>
+        <!-- Annotated Historical Timeline Chart -->
+        <div class="chart-card p-4 mb-4">
+            <div class="d-flex align-items-center mb-3 gap-2">
+                <i class="bi bi-graph-up-arrow text-warning fs-5"></i>
                 <h5 class="mb-0 text-white">Patterns &amp; Cycles: EO Issuance by Administration</h5>
             </div>
-            <div class="card-body p-4">
-                <p class="text-muted mb-3" style="font-size: 0.85rem;">Historical first-year executive order counts reveal recurring waves of regulatory action — each administration arrives with urgency, and the pace typically slows after the honeymoon period.</p>
-                <div style="position: relative; height: 280px;">
-                    <canvas id="eoChart"></canvas>
-                </div>
-                <p class="text-muted mt-2 mb-0" style="font-size: 0.75rem;"><em>Source: Federal Register historical data. Trump 2025 reflects orders tracked in this database.</em></p>
+            <p style="font-size: 0.82rem; color: #6c757d; margin-bottom: 1rem;">
+                Historical first-year executive order counts reveal recurring waves of regulatory action. Major deregulation waves and policy pivots are annotated below.
+            </p>
+            <div style="position: relative; height: 320px;">
+                <canvas id="eoChart"></canvas>
             </div>
+            <!-- Annotation Legend -->
+            <div class="d-flex flex-wrap gap-3 mt-3">
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#e74c3c;"></span>Reagan 1981 Dereg. Wave</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#e67e22;"></span>Gingrich-era Rollbacks 1995</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#f39c12;"></span>Bush Post-9/11 Surge 2001</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#2ecc71;"></span>Obama Opening Wave 2009</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#3498db;"></span>Trump I 2017</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#9b59b6;"></span>Biden 2021</div>
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#ffc107;"></span>Trump II 2025</div>
+            </div>
+            <p style="font-size: 0.72rem; color: #6c757d; margin-top: 0.5rem;"><em>Source: Federal Register historical data. Trump II 2025 reflects orders tracked in this database.</em></p>
         </div>
 
-        <!-- Missed Angles teaser -->
-        {% if missed_angles %}
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
-                <i class="bi bi-lightbulb fs-5 text-info me-2"></i>
-                <h5 class="mb-0 text-white">This Week's Missed Angles</h5>
-                <span class="badge bg-info ms-2" style="font-size: 0.65rem;">Independent Perspective</span>
+        <!-- Filter Form -->
+        <div class="filter-card p-4 mb-4">
+            <div class="d-flex align-items-center mb-3 gap-2">
+                <i class="bi bi-funnel text-info"></i>
+                <h6 class="mb-0 text-white">Filter Orders</h6>
             </div>
-            <div class="card-body p-4">
-                <p class="text-muted mb-3">What the mainstream isn't saying about recent executive orders:</p>
+            <form method="get" action="{{ url_for('executive_orders') }}">
                 <div class="row g-3">
-                    {% for angle in missed_angles %}
+                    <div class="col-md-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select form-select-sm" id="category" name="category">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select form-select-sm" id="status" name="status">
+                            <option value="">All Statuses</option>
+                            {% for stat in statuses %}
+                                <option value="{{ stat }}" {% if status == stat %}selected{% endif %}>{{ stat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-md-4">
-                        <div class="card border border-secondary h-100" style="background: #12121e;">
-                            <div class="card-body p-3">
-                                {% if angle.get('is_fallback') %}
-                                <span class="badge bg-secondary mb-2" style="font-size: 0.65rem;">Summary</span>
-                                {% else %}
-                                <span class="badge bg-warning text-dark mb-2" style="font-size: 0.65rem;">Independent View</span>
-                                {% endif %}
-                                <h6 class="fw-semibold mb-2 text-warning" style="font-size: 0.85rem;">
-                                    <a href="{{ url_for('executive_order_detail', order_number=angle.order_number) }}" class="text-warning text-decoration-none">
-                                        {{ angle.title[:70] }}{% if angle.title|length > 70 %}…{% endif %}
-                                    </a>
-                                </h6>
-                                <p class="mb-0 text-muted" style="font-size: 0.82rem; line-height: 1.55;">{{ angle.blurb[:200] }}{% if angle.blurb|length > 200 %}…{% endif %}</p>
-                            </div>
-                        </div>
+                        <label for="searchTerm" class="form-label">Keyword Search</label>
+                        <input type="text" class="form-control form-control-sm" id="searchTerm" name="search" value="{{ search }}" placeholder="Search title or content…">
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Filters -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filter Orders</h5>
-            </div>
-            <div class="card-body">
-                <form id="filterForm" method="get" action="{{ url_for('executive_orders') }}">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="category" class="form-label">Category</label>
-                            <select class="form-select" id="category" name="category">
-                                <option value="">All Categories</option>
-                                {% for cat in categories %}
-                                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" name="status">
-                                <option value="">All Statuses</option>
-                                {% for stat in statuses %}
-                                    <option value="{{ stat }}" {% if status == stat %}selected{% endif %}>{{ stat }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="searchTerm" class="form-label">Search</label>
-                            <input type="text" class="form-control" id="searchTerm" name="search" value="{{ search }}" placeholder="Search title or content">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="date_from" class="form-label">From Date</label>
-                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="date_to" class="form-label">To Date</label>
-                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
-                        </div>
+                    <div class="col-md-2">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" class="form-control form-control-sm" id="date_from" name="date_from" value="{{ date_from }}">
                     </div>
-                    <div class="mt-3 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-search me-1"></i>Apply Filters
+                    <div class="col-md-1 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-search"></i>
                         </button>
-                        <a href="{{ url_for('executive_orders') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle me-1"></i>Reset
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="{{ url_for('executive_orders') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i>Reset Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Header -->
+        {% if orders %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="results-header"><i class="bi bi-grid-3x3-gap me-1"></i>{{ orders|length }} Order{{ 's' if orders|length != 1 else '' }} Found</span>
+        </div>
+
+        <!-- EO Card Grid -->
+        <div class="row g-4 mb-5">
+            {% for order in orders %}
+            <div class="col-lg-4 col-md-6">
+                <div class="eo-card p-4 h-100 d-flex flex-column">
+                    <!-- Card Header Row -->
+                    <div class="d-flex justify-content-between align-items-start mb-2 gap-2 flex-wrap">
+                        <span class="eo-order-badge">{{ order.order_number }}</span>
+                        <span class="eo-date-chip"><i class="bi bi-calendar3 me-1"></i>{{ order.date_issued.strftime('%b %d, %Y') if order.date_issued else 'N/A' }}</span>
+                    </div>
+
+                    <!-- Title -->
+                    <h6 class="text-white fw-semibold mb-2" style="font-size: 0.92rem; line-height: 1.45;">
+                        <a href="{{ url_for('executive_order_detail', order_number=order.order_number) }}" class="text-white text-decoration-none stretched-link-title">
+                            {{ order.title[:100] }}{% if order.title and order.title|length > 100 %}…{% endif %}
+                        </a>
+                    </h6>
+
+                    <!-- Category & Status Row -->
+                    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                        {% if order.category %}
+                        <span class="eo-category-tag">{{ order.category[:30] }}{% if order.category|length > 30 %}…{% endif %}</span>
+                        {% endif %}
+                        {% if order.status == 'Active' %}
+                            <span class="badge bg-success" style="font-size: 0.65rem;">Active</span>
+                        {% elif order.status == 'Revoked' %}
+                            <span class="badge bg-danger" style="font-size: 0.65rem;">Revoked</span>
+                        {% elif order.status == 'Amended' %}
+                            <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Amended</span>
+                        {% elif order.status == 'Pending Implementation' %}
+                            <span class="badge bg-info text-dark" style="font-size: 0.65rem;">Pending</span>
+                        {% else %}
+                            <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ order.status or 'Unknown' }}</span>
+                        {% endif %}
+                        {% if order.ai_summary %}
+                        <span class="badge bg-warning text-dark" style="font-size: 0.6rem;" title="AI analysis available">AI</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- AI Quip -->
+                    <div class="eo-quip-block mb-3">
+                        {% if order.ai_quip %}
+                        <i class="bi bi-stars me-1" style="color: #ffc107; font-style: normal;"></i>{{ order.ai_quip }}
+                        {% elif order.summary %}
+                        <span style="color: #6c757d; font-style: normal; font-size: 0.8rem;"><i class="bi bi-hourglass-split me-1"></i></span>{{ order.summary[:120] }}{% if order.summary|length > 120 %}…{% endif %}
+                        {% else %}
+                        <span style="color: #6c757d;"><i class="bi bi-hourglass-split me-1"></i>AI quip pending analysis.</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Poll Tally -->
+                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                        <div style="font-size: 0.75rem; color: #6c757d;">
+                            {% set total = (order.poll_yes or 0) + (order.poll_no or 0) %}
+                            {% if total > 0 %}
+                            <span class="text-success me-2"><i class="bi bi-hand-thumbs-up me-1"></i>{{ order.poll_yes or 0 }}</span>
+                            <span class="text-danger"><i class="bi bi-hand-thumbs-down me-1"></i>{{ order.poll_no or 0 }}</span>
+                            {% else %}
+                            <span>No votes yet</span>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('executive_order_detail', order_number=order.order_number) }}" class="btn btn-sm btn-outline-warning" style="font-size: 0.75rem; padding: 3px 10px;">
+                            <i class="bi bi-eye me-1"></i>View
                         </a>
                     </div>
-                </form>
+                </div>
             </div>
+            {% endfor %}
         </div>
 
-        <!-- Executive Orders Table -->
-        {% if orders %}
-        <div class="card shadow-sm mb-5">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold"><i class="bi bi-table me-2"></i>{{ orders|length }} Order{{ 's' if orders|length != 1 else '' }} Found</span>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th style="width:120px;">Order #</th>
-                            <th>Title</th>
-                            <th style="width:110px;">Date Issued</th>
-                            <th style="width:180px;">Category</th>
-                            <th style="width:100px;">Status</th>
-                            <th style="width:80px;">Poll</th>
-                            <th style="width:100px;">Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td><span class="badge bg-secondary">{{ order.order_number }}</span></td>
-                            <td>
-                                <a href="{{ url_for('executive_order_detail', order_number=order.order_number) }}" class="text-decoration-none fw-semibold">
-                                    {{ order.title }}
-                                </a>
-                                {% if order.ai_summary %}
-                                <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;" title="AI analysis available">AI</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-muted small">{{ order.date_issued.strftime('%b %d, %Y') if order.date_issued else 'N/A' }}</td>
-                            <td class="small">{{ order.category or '—' }}</td>
-                            <td>
-                                {% if order.status == 'Active' %}
-                                    <span class="badge bg-success">{{ order.status }}</span>
-                                {% elif order.status == 'Revoked' %}
-                                    <span class="badge bg-danger">{{ order.status }}</span>
-                                {% elif order.status == 'Amended' %}
-                                    <span class="badge bg-warning text-dark">{{ order.status }}</span>
-                                {% elif order.status == 'Pending Implementation' %}
-                                    <span class="badge bg-info text-dark">{{ order.status }}</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ order.status or 'Unknown' }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="small text-center">
-                                {% set total = (order.poll_yes or 0) + (order.poll_no or 0) %}
-                                {% if total > 0 %}
-                                <span class="text-success" title="Helps"><i class="bi bi-hand-thumbs-up"></i> {{ order.poll_yes or 0 }}</span>
-                                <span class="text-muted mx-1">/</span>
-                                <span class="text-danger" title="Hurts"><i class="bi bi-hand-thumbs-down"></i> {{ order.poll_no or 0 }}</span>
-                                {% else %}
-                                <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('executive_order_detail', order_number=order.order_number) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye me-1"></i>View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
         {% else %}
         <div class="alert alert-info mt-4">
             <i class="bi bi-info-circle me-2"></i>No executive orders found matching your criteria. Try different filters or <a href="{{ url_for('executive_orders') }}" class="alert-link">reset all filters</a>.
@@ -248,48 +319,85 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('eoChart');
     if (!ctx) return;
 
-    const labels = ['Reagan\n(1981)', 'G.H.W. Bush\n(1989)', 'Clinton\n(1993)', 'G.W. Bush\n(2001)', 'Obama\n(2009)', 'Trump I\n(2017)', 'Biden\n(2021)', 'Trump II\n(2025)'];
-    const firstYearCounts = [70, 42, 57, 54, 29, 55, 77, {{ total_orders }}];
-    const bgColors = labels.map((_, i) => i === labels.length - 1 ? 'rgba(255, 193, 7, 0.85)' : 'rgba(13, 110, 253, 0.6)');
-    const borderColors = labels.map((_, i) => i === labels.length - 1 ? '#ffc107' : '#0d6efd');
+    // Register the annotation plugin if available
+    if (window.ChartAnnotation) {
+        Chart.register(window.ChartAnnotation);
+    } else if (typeof Chart !== 'undefined' && Chart.registry) {
+        try { Chart.register(ChartAnnotation); } catch(e) {}
+    }
+
+    const labels = ['Reagan\n(1981)', 'G.H.W. Bush\n(1989)', 'Clinton\n(1993)', 'G.W. Bush\n(2001)', 'Obama\n(2009)', 'Trump I\n(2017)', 'Biden\n(2021)', 'Trump II\n(2025)*'];
+    const data = [70, 42, 57, 54, 29, 55, 77, {{ total_orders }}];
+
+    // Annotation config for major waves
+    const annotations = {
+        reagan: {
+            type: 'line', xMin: 0, xMax: 0, borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Reagan Dereg.', enabled: true, position: 'start', color: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.12)', font: { size: 10 } }
+        },
+        gingrich: {
+            type: 'line', xMin: 2, xMax: 2, borderColor: '#e67e22', borderWidth: 2, borderDash: [5,4],
+            label: { content: '\'95 Rollbacks', enabled: true, position: 'start', color: '#e67e22', backgroundColor: 'rgba(230,126,34,0.12)', font: { size: 10 } }
+        },
+        bush: {
+            type: 'line', xMin: 3, xMax: 3, borderColor: '#f39c12', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Post-9/11 Surge', enabled: true, position: 'end', color: '#f39c12', backgroundColor: 'rgba(243,156,18,0.12)', font: { size: 10 } }
+        },
+        obama: {
+            type: 'line', xMin: 4, xMax: 4, borderColor: '#2ecc71', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Obama Wave', enabled: true, position: 'start', color: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.12)', font: { size: 10 } }
+        },
+        trump1: {
+            type: 'line', xMin: 5, xMax: 5, borderColor: '#3498db', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Trump I', enabled: true, position: 'end', color: '#3498db', backgroundColor: 'rgba(52,152,219,0.12)', font: { size: 10 } }
+        },
+        biden: {
+            type: 'line', xMin: 6, xMax: 6, borderColor: '#9b59b6', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Biden 2021', enabled: true, position: 'start', color: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.12)', font: { size: 10 } }
+        },
+        trump2: {
+            type: 'line', xMin: 7, xMax: 7, borderColor: '#ffc107', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Trump II', enabled: true, position: 'end', color: '#ffc107', backgroundColor: 'rgba(255,193,7,0.12)', font: { size: 10 } }
+        }
+    };
+
+    const pluginsConfig = { legend: { display: false } };
+    try {
+        pluginsConfig.annotation = { annotations: annotations };
+    } catch(e) {}
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: ['Reagan (1981)', 'G.H.W. Bush (1989)', 'Clinton (1993)', 'G.W. Bush (2001)', 'Obama (2009)', 'Trump I (2017)', 'Biden (2021)', 'Trump II (2025)*'],
+            labels: labels,
             datasets: [{
-                label: 'Executive Orders',
-                data: firstYearCounts,
-                backgroundColor: bgColors,
-                borderColor: borderColors,
-                borderWidth: 2,
-                borderRadius: 4
+                label: 'Executive Orders (First Year)',
+                data: data,
+                fill: true,
+                backgroundColor: 'rgba(255,193,7,0.1)',
+                borderColor: '#ffc107',
+                borderWidth: 2.5,
+                pointBackgroundColor: data.map((_, i) => i === data.length - 1 ? '#ffc107' : '#0d6efd'),
+                pointBorderColor: data.map((_, i) => i === data.length - 1 ? '#fff' : '#0d6efd'),
+                pointRadius: data.map((_, i) => i === data.length - 1 ? 7 : 5),
+                pointHoverRadius: 8,
+                tension: 0.35
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(ctx) {
-                            const suffix = ctx.dataIndex === firstYearCounts.length - 1 ? ' (tracked in this database)' : ' EOs in first year';
-                            return ctx.parsed.y + suffix;
-                        }
-                    }
-                }
-            },
+            plugins: pluginsConfig,
             scales: {
                 x: {
-                    ticks: { color: '#adb5bd', font: { size: 11 } },
+                    ticks: { color: '#8b949e', font: { size: 10 } },
                     grid: { color: 'rgba(255,255,255,0.05)' }
                 },
                 y: {
                     beginAtZero: true,
-                    ticks: { color: '#adb5bd', stepSize: 10 },
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    title: { display: true, text: 'Number of Executive Orders', color: '#adb5bd' }
+                    ticks: { color: '#8b949e', stepSize: 10 },
+                    grid: { color: 'rgba(255,255,255,0.07)' },
+                    title: { display: true, text: 'EOs (First Year)', color: '#8b949e', font: { size: 11 } }
                 }
             }
         }

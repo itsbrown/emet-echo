@@ -71,7 +71,8 @@ with app.app_context():
                     ADD COLUMN IF NOT EXISTS historical_context TEXT,
                     ADD COLUMN IF NOT EXISTS data_ties TEXT,
                     ADD COLUMN IF NOT EXISTS poll_yes INTEGER DEFAULT 0,
-                    ADD COLUMN IF NOT EXISTS poll_no INTEGER DEFAULT 0
+                    ADD COLUMN IF NOT EXISTS poll_no INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS ai_quip TEXT
             """))
             conn.commit()
         logger.info("ExecutiveOrder schema migration applied (IF NOT EXISTS).")
@@ -102,6 +103,25 @@ def _safe_json_loads(value, default=None):
         return json.loads(value)
     except Exception:
         return default
+
+# Startup backfill: generate ai_quip for orders that have ai_summary but no ai_quip (max 20)
+with app.app_context():
+    try:
+        from models import ExecutiveOrder as _EO
+        from executive_orders import generate_ai_quip as _gen_quip
+        _backfill_orders = _EO.query.filter(
+            _EO.ai_summary.isnot(None),
+            _EO.ai_quip.is_(None)
+        ).limit(20).all()
+        for _o in _backfill_orders:
+            try:
+                _gen_quip(_o)
+            except Exception as _qe:
+                logger.warning(f"Quip backfill skipped for {_o.order_number}: {_qe}")
+        if _backfill_orders:
+            logger.info(f"ai_quip backfill completed for {len(_backfill_orders)} orders.")
+    except Exception as _bf_err:
+        logger.warning(f"ai_quip backfill skipped: {_bf_err}")
 
 # Ensure user has a session ID
 def get_or_create_user_id():
@@ -309,6 +329,18 @@ def index():
     display_articles = articles[:8]
     
     featured_products = printify.get_featured_products(6)
+
+    # EO Watch: 3 most recent EOs with an ai_quip
+    latest_eos = []
+    try:
+        from models import ExecutiveOrder as _EO_home
+        latest_eos = _EO_home.query.filter(
+            _EO_home.ai_quip.isnot(None),
+            _EO_home.ai_quip != ''
+        ).order_by(_EO_home.date_issued.desc()).limit(3).all()
+    except Exception as _eo_home_err:
+        logger.error(f"Error fetching latest EOs for homepage: {_eo_home_err}")
+        latest_eos = []
     
     return render_template('index.html', 
                           articles=display_articles, 
@@ -317,7 +349,8 @@ def index():
                           featured_products=featured_products,
                           weekly_digest=weekly_digest,
                           missed_angles=missed_angles,
-                          eo_patterns_summary=eo_patterns_summary)
+                          eo_patterns_summary=eo_patterns_summary,
+                          latest_eos=latest_eos)
 
 @app.route('/search')
 def search():
@@ -468,11 +501,24 @@ def search():
             articles = []
     
     last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # EO Watch: pass empty list for search results page
+    latest_eos = []
+    try:
+        from models import ExecutiveOrder as _EO_search
+        latest_eos = _EO_search.query.filter(
+            _EO_search.ai_quip.isnot(None),
+            _EO_search.ai_quip != ''
+        ).order_by(_EO_search.date_issued.desc()).limit(3).all()
+    except Exception as _eo_s_err:
+        logger.error(f"Error fetching latest EOs for search page: {_eo_s_err}")
+        latest_eos = []
     
     return render_template('index.html', 
                           articles=articles, 
                           last_updated=last_updated,
-                          search_query=query)
+                          search_query=query,
+                          latest_eos=latest_eos)
 
 @app.route('/article/<path:article_url>')
 def article_detail(article_url):
@@ -737,6 +783,16 @@ def executive_orders():
         ).group_by(ExecutiveOrder.category).order_by(func.count(ExecutiveOrder.id).desc()).first()
         most_common_category = most_common_category_row[0] if most_common_category_row else 'N/A'
 
+        # Compute poll sentiment: % "Helps" across all orders
+        poll_totals = db.session.query(
+            func.coalesce(func.sum(ExecutiveOrder.poll_yes), 0),
+            func.coalesce(func.sum(ExecutiveOrder.poll_no), 0)
+        ).first()
+        total_yes = poll_totals[0] if poll_totals else 0
+        total_no = poll_totals[1] if poll_totals else 0
+        grand_total_votes = total_yes + total_no
+        poll_sentiment_pct = int(round(total_yes / grand_total_votes * 100)) if grand_total_votes > 0 else 0
+
         # Missed angles blurbs: try to show indie_vs_mainstream from recent AI-analysed orders.
         # If fewer than 2 have AI analysis, trigger generation for the newest without it,
         # then fall back to the regular summary if AI generation fails or quota is exceeded.
@@ -781,6 +837,7 @@ def executive_orders():
                                total_orders=total_orders,
                                active_this_month=active_this_month,
                                most_common_category=most_common_category,
+                               poll_sentiment_pct=poll_sentiment_pct,
                                missed_angles=missed_angles)
 
     except Exception as e:

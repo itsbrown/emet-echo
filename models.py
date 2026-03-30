@@ -60,6 +60,7 @@ class ExecutiveOrder(db.Model):
     data_ties = db.Column(db.Text)  # AI-generated data/economic context note
     poll_yes = db.Column(db.Integer, default=0)  # Poll: helps independents
     poll_no = db.Column(db.Integer, default=0)   # Poll: hurts independents
+    ai_quip = db.Column(db.Text)  # AI-generated punchy one-liner (≤20 words)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
