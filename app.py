@@ -112,9 +112,6 @@ with app.app_context():
     except Exception as _xh_err:
         logger.warning(f"x_handle migration skipped or failed: {_xh_err}")
 
-# Warn if X_BEARER_TOKEN is missing
-if not os.environ.get("X_BEARER_TOKEN"):
-    logger.warning("X_BEARER_TOKEN is not set. The X Posts feed will not display live tweets.")
 
 def _safe_json_loads(value, default=None):
     """Parse JSON string safely, returning default on failure or when value is falsy."""
