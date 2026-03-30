@@ -229,7 +229,7 @@
         <div class="collapse" id="fullTextCollapse">
             <div class="card-body p-4">
                 {% if order.full_text %}
-                <div class="p-3 border rounded" style="white-space: pre-line; max-height: 450px; overflow-y: auto; font-size: 0.9rem; line-height: 1.7;">{{ order.full_text }}</div>
+                <div class="p-3 border rounded" style="white-space: pre-line; max-height: 450px; overflow-y: auto; font-size: 0.9rem; line-height: 1.7;">{{ order.full_text | html_to_text }}</div>
                 {% else %}
                 <p class="text-muted mb-0">Full text of this executive order is not available.</p>
                 {% endif %}

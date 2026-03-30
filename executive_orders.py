@@ -8,6 +8,7 @@ from datetime import datetime
 from app import db
 from models import ExecutiveOrder
 from summarizer import generate_summary
+from html_utils import extract_plain_text
 
 try:
     from openai import OpenAI
@@ -109,6 +110,8 @@ def fetch_executive_orders(limit=10):
                             full_text = full_text.replace('\r\n', '\n').replace('\r', '\n')
                             # Replace any other problematic characters
                             full_text = ''.join(c if ord(c) >= 32 or c in '\n\t' else ' ' for c in full_text)
+                            # Extract plain text from HTML document
+                            full_text = extract_plain_text(full_text)
                 except Exception as e:
                     logger.error(f"Error fetching full text: {str(e)}")
             

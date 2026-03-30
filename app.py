@@ -36,6 +36,19 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Initialize the app with the extension
 db.init_app(app)
 
+# Custom Jinja2 filter: convert raw HTML to human-readable plain text,
+# preserving paragraph/line structure for legacy DB records that may
+# contain raw HTML from before the ingest-time extraction was added.
+from html_utils import extract_plain_text as _html_to_text
+
+@app.template_filter('html_to_text')
+def html_to_text_filter(value):
+    if not value:
+        return value
+    if '<' in value and '>' in value:
+        return _html_to_text(value)
+    return value
+
 # Register blueprints
 from blueprints.email import email_bp, init_app as init_email_blueprint
 
