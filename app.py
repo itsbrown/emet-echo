@@ -123,6 +123,27 @@ with app.app_context():
     except Exception as _bf_err:
         logger.warning(f"ai_quip backfill skipped: {_bf_err}")
 
+# Clear cached AI summaries so all EOs get re-analyzed with the America First perspective
+with app.app_context():
+    try:
+        from sqlalchemy import text as _text
+        with db.engine.connect() as _conn:
+            _conn.execute(_text("""
+                UPDATE executive_order
+                SET ai_summary = NULL,
+                    indie_vs_mainstream = NULL,
+                    historical_context = NULL,
+                    data_ties = NULL
+                WHERE ai_summary IS NOT NULL
+                   OR indie_vs_mainstream IS NOT NULL
+                   OR historical_context IS NOT NULL
+                   OR data_ties IS NOT NULL
+            """))
+            _conn.commit()
+        logger.info("Cleared cached AI summaries for America First re-analysis.")
+    except Exception as _clear_err:
+        logger.warning(f"AI cache clear skipped or failed: {_clear_err}")
+
 # Ensure user has a session ID
 def get_or_create_user_id():
     if 'user_id' not in session:
@@ -804,9 +825,9 @@ def executive_orders():
         for eo in recent_with_ai:
             try:
                 data = json.loads(eo.indie_vs_mainstream)
-                indie_text = data.get('indie', '')
-                if indie_text:
-                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': indie_text})
+                biz_text = data.get('wins', data.get('indie', ''))
+                if biz_text:
+                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': biz_text})
             except Exception:
                 pass
 
@@ -865,14 +886,14 @@ def executive_order_detail(order_number):
             except Exception as e:
                 logger.error(f"AI analysis failed for {order_number}: {e}")
 
-        # Parse indie_vs_mainstream JSON
+        # Parse indie_vs_mainstream JSON (stores small_business_impact: wins + risks)
         indie_text = ''
         mainstream_text = ''
         if order.indie_vs_mainstream:
             try:
                 ivm = json.loads(order.indie_vs_mainstream)
-                indie_text = ivm.get('indie', '')
-                mainstream_text = ivm.get('mainstream', '')
+                indie_text = ivm.get('wins', ivm.get('indie', ''))
+                mainstream_text = ivm.get('risks', ivm.get('mainstream', ''))
             except Exception:
                 indie_text = order.indie_vs_mainstream
 

@@ -112,7 +112,7 @@
                         <span class="badge bg-info text-dark" style="font-size: 0.7rem;">Federal Register API</span>
                     </div>
                     <h1 class="display-5 fw-bold text-white mb-2">Executive Order Intelligence Hub</h1>
-                    <p class="lead mb-2" style="color: rgba(255,255,255,0.6);">AI-powered analysis of Trump executive orders — viewed through an independent lens, not a partisan one.</p>
+                    <p class="lead mb-2" style="color: rgba(255,255,255,0.6);">AI-powered analysis of Trump executive orders — viewed through an America First perspective, not a partisan one.</p>
                     <p style="font-size: 0.8rem; color: #6c757d;"><i class="bi bi-clock me-1"></i>Last updated: {{ last_updated }}</p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
@@ -178,6 +178,29 @@
             </div>
             <p style="font-size: 0.72rem; color: #6c757d; margin-top: 0.5rem;"><em>Source: Federal Register historical data. Trump II 2025 reflects orders tracked in this database.</em></p>
         </div>
+
+        <!-- Missed Angles teaser -->
+        {% if missed_angles %}
+        <div class="card mb-4 shadow-sm bg-dark border-info">
+            <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
+                <i class="bi bi-lightbulb fs-5 text-info me-2"></i>
+                <h5 class="mb-0 text-white">This Week's Missed Angles</h5>
+                <span class="badge bg-info ms-2" style="font-size: 0.65rem;">America First Perspective</span>
+            </div>
+            <div class="card-body text-white">
+                <div class="row">
+                    {% for angle in missed_angles %}
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border border-secondary rounded h-100">
+                            <h6 class="text-info mb-2">{{ angle.title }}</h6>
+                            <p class="small mb-0 opacity-75">{{ angle.description }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Filter Form -->
         <div class="filter-card p-4 mb-4">

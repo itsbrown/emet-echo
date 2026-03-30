@@ -92,7 +92,7 @@
         <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #0f3460, #16213e);">
             <i class="bi bi-robot fs-5 text-warning me-2"></i>
             <h5 class="mb-0 text-white">AI Analysis Summary</h5>
-            <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">Independent Perspective</span>
+            <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">America First Perspective</span>
         </div>
         <div class="card-body p-4">
             {% if order.ai_summary %}
@@ -106,28 +106,31 @@
         </div>
     </div>
 
-    <!-- Indie vs. Mainstream -->
+    <!-- Small Business Impact -->
     {% if indie_text or mainstream_text %}
     <div class="card mb-4 shadow-sm">
         <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a1a2e, #0f3460);">
-            <i class="bi bi-layout-split fs-5 text-info me-2"></i>
-            <h5 class="mb-0 text-white">Indie vs. Mainstream Perspectives</h5>
+            <i class="bi bi-shop fs-5 text-info me-2"></i>
+            <h5 class="mb-0 text-white">Small Business Impact</h5>
         </div>
         <div class="card-body p-0">
             <div class="row g-0">
                 <div class="col-md-6 p-4 border-end border-secondary">
                     <h6 class="fw-bold mb-3 text-warning">
-                        <i class="bi bi-person-raised-hand me-2"></i>Independent / Libertarian View
+                        <i class="bi bi-trophy me-2"></i>Main Street Wins
                     </h6>
                     <p class="mb-0" style="line-height: 1.75;">{{ indie_text }}</p>
                 </div>
                 <div class="col-md-6 p-4">
-                    <h6 class="fw-bold mb-3 text-info">
-                        <i class="bi bi-tv me-2"></i>Mainstream / Establishment View
+                    <h6 class="fw-bold mb-3 text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Risks to Watch
                     </h6>
                     <p class="mb-0" style="line-height: 1.75;">{{ mainstream_text }}</p>
                 </div>
             </div>
+        </div>
+        <div class="card-footer text-muted py-2 px-4" style="font-size: 0.75rem; background: #0d0d1a;">
+            America First Small Business Analysis — includes BLS, Census BFS, and FBI crime trends
         </div>
     </div>
     {% endif %}

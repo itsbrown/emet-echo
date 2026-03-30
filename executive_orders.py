@@ -365,13 +365,96 @@ Return only the single sentence, no quotes, no punctuation other than the em-das
     except Exception as e:
         logger.error(f"Error generating ai_quip for {order.order_number}: {e}")
 
+# ---------------------------------------------------------------------------
+# America First economic & crime context helpers
+# ---------------------------------------------------------------------------
+
+AMERICA_FIRST_SMALL_BIZ_PROMPT = """
+You are an America First analyst focused on small business success and Main Street America.
+
+For every Executive Order, news story, or policy, evaluate it strictly against these core metrics of what makes America Great:
+- Lower unemployment and higher real wages for American workers
+- Increased small business formation, survival, and growth rates (Census BFS)
+- Higher domestic production and GDP contribution from small firms and manufacturers
+- Reduced regulatory burden and compliance costs on small businesses
+- LOWER CRIME RATES (FBI UCR/NIBRS data), especially violent crime and property crime in communities where small businesses operate — safer streets mean more foot traffic, lower insurance costs, and better employee retention for Main Street
+- Increased low-income home ownership and economic mobility for working families
+
+Prioritize the small-business angle: How does this policy help or hurt Main Street entrepreneurs, mom-and-pop shops, family farms, independent contractors, and small manufacturers?
+Highlight wins for deregulation, energy independence, fair trade, tax relief, reduced bureaucracy, or stronger law enforcement that protects businesses.
+Note risks (e.g., higher costs or crime spikes that hurt retail/restaurants).
+
+Use recent FBI crime data (violent crime rate, property crime rate, trends from Crime Data Explorer) alongside BLS unemployment/wages and Census BFS business formations.
+Frame everything through the lens of putting American workers, families, and small businesses first. Use factual, optimistic language when data supports positive outcomes.
+Keep tone straightforward and pro-America — never neutral "both sides" language.
+"""
+
+_econ_cache = {}
+
+
+def _econ_cache_key():
+    return datetime.now().strftime("%Y%m%d")
+
+
+def _get_cached_econ_context():
+    key = _econ_cache_key()
+    if _econ_cache.get("_key") == key and "data" in _econ_cache:
+        return _econ_cache["data"]
+    data = get_economic_crime_context()
+    _econ_cache["_key"] = key
+    _econ_cache["data"] = data
+    return data
+
+
+def get_bls_unemployment():
+    try:
+        headers = {'Content-type': 'application/json'}
+        data = json.dumps({
+            "seriesid": ["LNS14000000"],
+            "startyear": str(datetime.now().year - 1),
+            "endyear": str(datetime.now().year)
+        })
+        response = requests.post('https://api.bls.gov/publicAPI/v2/timeseries/data/', data=data, headers=headers, timeout=10)
+        if response.status_code == 200:
+            json_data = response.json()
+            if json_data.get('status') == 'REQUEST_SUCCEEDED':
+                latest = json_data['Results']['series'][0]['data'][0]
+                return {"unemployment_rate": float(latest['value']), "period": f"{latest['year']}-{latest['period']}"}
+    except Exception as e:
+        logger.error(f"BLS fetch error: {e}")
+    return {"error": "unavailable"}
+
+
+def get_fbi_crime_data():
+    try:
+        url = "https://api.usa.gov/crime/fbi/sapi/api/summarized/estimates/national"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "violent_crime_rate": data.get("violent_crime_rate_per_100k", "N/A"),
+                "property_crime_rate": data.get("property_crime_rate_per_100k", "N/A"),
+                "note": "Lower crime supports safer business districts, lower insurance, more customer traffic"
+            }
+    except Exception as e:
+        logger.error(f"FBI crime fetch error: {e}")
+    return {"error": "unavailable"}
+
+
+def get_economic_crime_context():
+    return {
+        "bls": get_bls_unemployment(),
+        "fbi_crime": get_fbi_crime_data(),
+        "census_bfs": {"note": "Small business formation trends from Census Bureau BFS"}
+    }
+
 
 def generate_ai_analysis(order):
     """
     Generate AI analysis for an executive order using OpenAI.
-    Populates ai_summary, indie_vs_mainstream, historical_context, data_ties fields.
+    Populates ai_summary, indie_vs_mainstream (stores small_business_impact), historical_context, data_ties fields.
     Stores results in the database (called once per order, cached thereafter).
-    
+
     Args:
         order: ExecutiveOrder model instance
     """
@@ -382,28 +465,31 @@ def generate_ai_analysis(order):
     source_text = order.full_text or order.summary or order.title or ""
     source_text = source_text[:6000]
 
-    prompt = f"""You are an independent political analyst providing balanced, neutral analysis of U.S. executive orders.
+    context_dict = _get_cached_econ_context()
 
-Executive Order: {order.order_number}
-Title: {order.title}
-Date: {order.date_issued.strftime('%B %d, %Y') if order.date_issued else 'Unknown'}
-Category: {order.category}
-
-Text excerpt:
-{source_text}
-
-Provide a JSON response with exactly these four keys:
-1. "ai_summary": A 150-250 word neutral, independent-leaning summary. Focus on what the order does, who it affects, and what the stated rationale is. Avoid partisan framing.
-2. "indie_vs_mainstream": A JSON object with two keys: "indie" (2-3 sentences on how independent/libertarian media tends to view this EO — skeptical of overreach, cost, or unintended consequences) and "mainstream" (2-3 sentences on how mainstream/establishment media tends to frame this EO — focusing on norms, precedent, or traditional policy analysis).
-3. "historical_context": 3-4 bullet points (plain text, each starting with "•") connecting this EO to historical precedents or patterns — mention specific prior administrations (Reagan, Clinton, Bush, Obama, first Trump term) and EO issuance waves when relevant.
-4. "data_ties": 2-3 sentences on relevant economic or social data context (unemployment rates, inflation, wages, regulatory burden) drawn from general knowledge that relates to the stated goals of this EO.
-
-Return only valid JSON, no markdown fences."""
+    user_message = (
+        f"Analyze this Executive Order from an America First small business perspective. "
+        f"Include relevant FBI crime trends if applicable:\n\n{source_text}\n\n"
+        f"Context data: {json.dumps(context_dict)}\n\n"
+        f"Return a JSON object with exactly these four keys:\n"
+        f'1. "ai_summary": A 150-250 word America First summary focused on small business impact.\n'
+        f'2. "small_business_impact": A JSON object with two keys: '
+        f'"wins" (2-3 sentences on how this EO helps Main Street small businesses, deregulation, or lower crime) '
+        f'and "risks" (2-3 sentences on potential cost increases, regulatory burdens, or other risks for small businesses).\n'
+        f'3. "historical_context": 3-4 bullet points (plain text, each starting with "•") connecting this EO to historical precedents '
+        f'— mention specific prior administrations and EO issuance waves when relevant.\n'
+        f'4. "data_ties": 2-3 sentences on relevant economic or social data context (BLS unemployment, wages, FBI crime rates, Census BFS) '
+        f'that relate to the stated goals of this EO.\n\n'
+        f"Return only valid JSON, no markdown fences."
+    )
 
     try:
         response = _openai_client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": AMERICA_FIRST_SMALL_BIZ_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
             max_tokens=1200,
             temperature=0.5
         )
@@ -416,11 +502,11 @@ Return only valid JSON, no markdown fences."""
         data = json.loads(raw)
 
         order.ai_summary = data.get("ai_summary", "")
-        indie_mainstream = data.get("indie_vs_mainstream", {})
-        if isinstance(indie_mainstream, dict):
-            order.indie_vs_mainstream = json.dumps(indie_mainstream)
+        small_biz = data.get("small_business_impact", {})
+        if isinstance(small_biz, dict):
+            order.indie_vs_mainstream = json.dumps(small_biz)
         else:
-            order.indie_vs_mainstream = json.dumps({"indie": str(indie_mainstream), "mainstream": ""})
+            order.indie_vs_mainstream = json.dumps({"wins": str(small_biz), "risks": ""})
         order.historical_context = data.get("historical_context", "")
         order.data_ties = data.get("data_ties", "")
 
