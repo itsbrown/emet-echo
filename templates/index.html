@@ -51,9 +51,11 @@
                 <p class="text-white-50 mb-0">Support truth-focused journalism with our exclusive patriotic gear collection.</p>
             </div>
             <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="btn btn-light btn-lg">
-                    <i class="bi bi-cart3 me-2"></i> Visit Shop
-                </a>
+                <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Coming Soon" style="cursor:not-allowed;" class="d-inline-block">
+                    <span class="btn btn-secondary btn-lg disabled" style="opacity:0.6; pointer-events:none;" tabindex="-1">
+                        <i class="bi bi-cart3 me-2"></i> Visit Shop
+                    </span>
+                </span>
             </div>
         </div>
     </div>
@@ -334,9 +336,11 @@
                                     <span class="badge bg-danger mb-2">Shop Merchandise</span>
                                     <h5 class="card-title text-white text-truncate" title="{{ product.title }}">{{ product.title }}</h5>
                                     <p class="card-text text-danger fw-bold fs-5">{{ product.price_display }}</p>
-                                    <a href="https://shop.emetecho.com" target="_blank" rel="noopener noreferrer" class="btn btn-danger w-100">
-                                        <i class="bi bi-cart3 me-1"></i> Shop Now
-                                    </a>
+                                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="Coming Soon" style="cursor:not-allowed;" class="d-block">
+                                        <span class="btn btn-secondary w-100 disabled" style="opacity:0.6; pointer-events:none;" tabindex="-1">
+                                            <i class="bi bi-cart3 me-1"></i> Shop Now
+                                        </span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
