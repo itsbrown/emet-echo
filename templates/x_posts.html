@@ -115,6 +115,7 @@
                     <div class="d-flex align-items-center gap-3 mt-auto pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
                         <span class="stat-chip"><i class="bi bi-heart text-danger"></i>{{ post.likes | default(0) }}</span>
                         <span class="stat-chip"><i class="bi bi-repeat" style="color: #1d9bf0;"></i>{{ post.retweets | default(0) }}</span>
+                        <span class="stat-chip"><i class="bi bi-eye" style="color: #8b949e;"></i>{{ post.views | default(0) }}</span>
                         {% if post.tweet_id %}
                         <a href="https://x.com/{{ post.handle }}/status/{{ post.tweet_id }}" target="_blank" rel="noopener noreferrer"
                            class="ms-auto text-decoration-none" style="font-size: 0.75rem; color: #1d9bf0;">

@@ -1357,24 +1357,21 @@ def admin_x_handles():
 
 @app.route('/x-posts')
 def x_posts():
-    """Public feed showing the last 24h of posts from monitored X handles."""
+    """Public feed showing posts from monitored X handles scraped via Playwright."""
     from models import XHandle
-    import x_api
+    import x_scraper
 
-    bearer_set = bool(os.environ.get("X_BEARER_TOKEN"))
     handles = XHandle.query.order_by(XHandle.handle).all()
 
     posts = []
     error_msg = None
-    if not bearer_set:
-        error_msg = "The X API token is not configured. Contact the site admin to enable live posts."
-    elif not handles:
+    if not handles:
         error_msg = "No X handles are being monitored yet. An admin can add them at /admin/x-handles."
     else:
         try:
-            posts, api_error = x_api.fetch_all_handle_posts()
-            if api_error:
-                error_msg = f"X API error: {api_error}"
+            posts, scrape_error = x_scraper.fetch_all_handle_posts()
+            if scrape_error:
+                error_msg = f"Scraper error: {scrape_error}"
         except Exception as e:
             logger.error(f"Error fetching X posts: {e}")
             error_msg = "Could not fetch posts from X at this time. Please try again later."
