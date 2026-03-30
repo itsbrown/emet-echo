@@ -396,6 +396,7 @@
                 el.style.transition = 'max-height 0.4s ease, opacity 0.4s ease';
                 el.style.maxHeight = '0';
                 el.style.opacity = '0';
+                el.style.display = 'none';
             });
 
             btn.addEventListener('click', function () {
@@ -405,13 +406,19 @@
                     if (expanded) {
                         el.style.display = '';
                         requestAnimationFrame(function () {
-                            el.style.maxHeight = el.scrollHeight + 'px';
-                            el.style.opacity = '1';
+                            requestAnimationFrame(function () {
+                                el.style.maxHeight = el.scrollHeight + 'px';
+                                el.style.opacity = '1';
+                            });
                         });
                     } else {
                         el.style.maxHeight = '0';
                         el.style.opacity = '0';
+                        var fallbackTimer = setTimeout(function () {
+                            if (!expanded) el.style.display = 'none';
+                        }, 450);
                         el.addEventListener('transitionend', function handler() {
+                            clearTimeout(fallbackTimer);
                             if (!expanded) el.style.display = 'none';
                             el.removeEventListener('transitionend', handler);
                         });
