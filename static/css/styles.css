@@ -1,5 +1,19 @@
 /* Custom styles to supplement Bootstrap */
 
+/* Hidden story cards (shown after expand) */
+.hidden-story {
+    display: none;
+}
+
+/* Expand/collapse chevron rotation */
+#stories-toggle-icon.rotated {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+}
+#stories-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
 /* Card hover effect */
 .news-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;

@@ -162,7 +162,7 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 news-grid">
         {% if articles %}
             {% for article in articles %}
-                <div class="col">
+                <div class="col{% if not search_query and loop.index > 5 %} hidden-story{% endif %}">
                     <div class="card news-card h-100">
                         <!-- Article Image -->
                         <div class="article-img-container position-relative">
@@ -320,6 +320,54 @@
             </div>
         {% endif %}
     </div>
+
+    {% if not search_query and articles and articles|length > 5 %}
+    <div class="text-center mt-3 mb-2" id="stories-expand-container">
+        <button class="btn btn-outline-secondary" id="stories-toggle-btn" type="button" aria-expanded="false">
+            <i class="bi bi-chevron-down me-1" id="stories-toggle-icon"></i>
+            <span id="stories-toggle-label">Show more</span>
+        </button>
+    </div>
+    <script>
+        (function () {
+            var btn = document.getElementById('stories-toggle-btn');
+            var icon = document.getElementById('stories-toggle-icon');
+            var label = document.getElementById('stories-toggle-label');
+            var hidden = document.querySelectorAll('.hidden-story');
+            var expanded = false;
+
+            hidden.forEach(function (el) {
+                el.style.overflow = 'hidden';
+                el.style.transition = 'max-height 0.4s ease, opacity 0.4s ease';
+                el.style.maxHeight = '0';
+                el.style.opacity = '0';
+            });
+
+            btn.addEventListener('click', function () {
+                expanded = !expanded;
+                btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                hidden.forEach(function (el) {
+                    if (expanded) {
+                        el.style.display = '';
+                        requestAnimationFrame(function () {
+                            el.style.maxHeight = el.scrollHeight + 'px';
+                            el.style.opacity = '1';
+                        });
+                    } else {
+                        el.style.maxHeight = '0';
+                        el.style.opacity = '0';
+                        el.addEventListener('transitionend', function handler() {
+                            if (!expanded) el.style.display = 'none';
+                            el.removeEventListener('transitionend', handler);
+                        });
+                    }
+                });
+                icon.classList.toggle('rotated', expanded);
+                label.textContent = expanded ? 'Show less' : 'Show more';
+            });
+        })();
+    </script>
+    {% endif %}
 
     {% if not search_query %}
     <!-- This Week's Missed Angles -->
