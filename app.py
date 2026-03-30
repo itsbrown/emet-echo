@@ -215,13 +215,68 @@ def index():
         logger.error(f"Error loading articles from database: {str(e)}")
         articles = news_data["trending"]
     
+    # Generate AI content using full article pool (pre-cap)
+    from home_ai import generate_weekly_digest, generate_missed_angles, generate_eo_patterns_summary
+    
+    weekly_digest = generate_weekly_digest(articles)
+    missed_angles = generate_missed_angles(articles)
+    
+    # Fetch EO issuance stats for patterns summary
+    try:
+        from models import ExecutiveOrder
+        eo_records = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc()).limit(15).all()
+        total_eo_count = ExecutiveOrder.query.count()
+        
+        recent_eos = [
+            {
+                'title': eo.title,
+                'date_issued': eo.date_issued.strftime('%Y-%m-%d') if eo.date_issued else '',
+                'category': eo.category or ''
+            }
+            for eo in eo_records
+        ]
+        
+        issuance_rate = 0.0
+        if eo_records and len(eo_records) >= 2:
+            dates = [eo.date_issued for eo in eo_records if eo.date_issued]
+            if len(dates) >= 2:
+                oldest = min(dates)
+                newest = max(dates)
+                days_span = max((newest - oldest).days, 1)
+                issuance_rate = total_eo_count / days_span
+        
+        eo_stats = {
+            'total_count': total_eo_count,
+            'recent_eos': recent_eos,
+            'issuance_rate_per_day': issuance_rate,
+            'admin_historical': {
+                'Reagan (2 terms)': 381,
+                'Clinton (2 terms)': 364,
+                'Bush 43 (2 terms)': 291,
+                'Obama (2 terms)': 276,
+                'Trump 1st term (1 term)': 220,
+                'Biden (1 term)': 162,
+            }
+        }
+    except Exception as eo_err:
+        logger.error(f"Error fetching EO data for home AI: {eo_err}")
+        eo_stats = {'total_count': 0, 'recent_eos': [], 'issuance_rate_per_day': 0.0, 'admin_historical': {}}
+    
+    eo_patterns_summary = generate_eo_patterns_summary(eo_stats)
+    
+    # Cap articles to ~8 for the home page grid (~40% of content)
+    display_articles = articles[:8]
+    
     featured_products = printify.get_featured_products(6)
     
     return render_template('index.html', 
-                          articles=articles, 
+                          articles=display_articles, 
                           last_updated=formatted_time,
                           search_query=None,
-                          featured_products=featured_products)
+                          featured_products=featured_products,
+                          weekly_digest=weekly_digest,
+                          missed_angles=missed_angles,
+                          eo_patterns_summary=eo_patterns_summary)
 
 @app.route('/search')
 def search():
