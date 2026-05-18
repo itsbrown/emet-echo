@@ -268,6 +268,12 @@ def start_scheduler_with_context():
         
 threading.Thread(target=start_scheduler_with_context).start()
 
+@app.route('/ads.txt')
+def ads_txt():
+    """Serve ads.txt for Google AdSense verification"""
+    from flask import send_file
+    return send_file(os.path.join(app.root_path, 'ads.txt'), mimetype='text/plain')
+
 @app.route('/')
 def index():
     """Display trending news on the homepage"""
