@@ -7,11 +7,7 @@ from app import db
 
 logger = logging.getLogger(__name__)
 
-try:
-    from openai import OpenAI
-    _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-except Exception:
-    _openai_client = None
+from ai_client import chat_complete
 
 
 def generate_article_analysis(article):
@@ -23,10 +19,6 @@ def generate_article_analysis(article):
     Args:
         article: Article ORM instance
     """
-    if not _openai_client:
-        logger.warning("OpenAI client not available — skipping article analysis")
-        return
-
     source_text = article.content or article.description or article.summary or article.title or ""
     source_text = source_text[:4000]
 
@@ -50,13 +42,12 @@ Provide a JSON response with exactly these four keys:
 Return only valid JSON, no markdown fences."""
 
     try:
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+        raw = chat_complete(
+            [{"role": "user", "content": prompt}],
             max_tokens=800,
             temperature=0.5
-        )
-        raw = response.choices[0].message.content.strip()
+        ) or ""
+        raw = raw.strip()
 
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)

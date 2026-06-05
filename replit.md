@@ -100,3 +100,5 @@ Preferred communication style: Simple, everyday language.
 ### Configuration
 - See .env.example (committed) for all variables. Copy to .env (git-ignored) and populate.
 - Dev backdoors (e.g. /email/dev-confirm) and unauthenticated admin routes were removed/hardened post-review.
+- Background scheduler: set RUN_SCHEDULER=1 in exactly one dedicated process/worker (gunicorn multi-worker deploys will otherwise run duplicate refresh loops). See .env.example and code comments in app.py.
+- Schema migrations: run `python scripts/migrate.py` explicitly on deploy/fresh DB (no more auto DDL on import). Script lives in scripts/ and is called from post-merge.sh.

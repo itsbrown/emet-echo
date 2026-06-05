@@ -55,6 +55,7 @@
                         {% if admin_token %}
                         <input type="hidden" name="token" value="{{ admin_token }}">
                         {% endif %}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="handles" class="form-label text-secondary" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;">Handles (one per line)</label>
                             <textarea

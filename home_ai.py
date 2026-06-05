@@ -2,13 +2,9 @@ import os
 import logging
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from ai_client import chat_complete
 
-try:
-    from openai import OpenAI
-    _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-except Exception:
-    _openai_client = None
+logger = logging.getLogger(__name__)
 
 _cache = {}
 
@@ -68,10 +64,6 @@ def generate_weekly_digest(articles):
     if _is_fresh(label):
         return _cache.get(label, _PLACEHOLDER_WEEKLY_DIGEST)
 
-    if not _openai_client:
-        _set_cached(label, _PLACEHOLDER_WEEKLY_DIGEST)
-        return _PLACEHOLDER_WEEKLY_DIGEST
-
     try:
         titles_and_descs = []
         for a in articles[:20]:
@@ -91,13 +83,12 @@ def generate_weekly_digest(articles):
             f"Articles:\n{article_context}"
         )
 
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+        result = chat_complete(
+            [{"role": "user", "content": prompt}],
             max_tokens=500,
             temperature=0.6
-        )
-        result = response.choices[0].message.content.strip()
+        ) or ""
+        result = result.strip()
         _set_cached(label, result)
         return result
     except Exception as e:
@@ -110,10 +101,6 @@ def generate_missed_angles(articles):
     label = "missed_angles"
     if _is_fresh(label):
         return _cache.get(label, _PLACEHOLDER_MISSED_ANGLES)
-
-    if not _openai_client:
-        _set_cached(label, _PLACEHOLDER_MISSED_ANGLES)
-        return _PLACEHOLDER_MISSED_ANGLES
 
     try:
         titles_and_descs = []
@@ -135,13 +122,12 @@ def generate_missed_angles(articles):
             f"Articles:\n{article_context}"
         )
 
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+        raw = chat_complete(
+            [{"role": "user", "content": prompt}],
             max_tokens=400,
             temperature=0.7
-        )
-        raw = response.choices[0].message.content.strip()
+        ) or ""
+        raw = raw.strip()
         lines = [line.strip() for line in raw.splitlines() if line.strip()]
         bullets = []
         for line in lines:
@@ -171,10 +157,6 @@ def generate_eo_patterns_summary(eo_stats):
     label = "eo_patterns"
     if _is_fresh(label):
         return _cache.get(label, _PLACEHOLDER_EO_PATTERNS)
-
-    if not _openai_client:
-        _set_cached(label, _PLACEHOLDER_EO_PATTERNS)
-        return _PLACEHOLDER_EO_PATTERNS
 
     try:
         total_count = eo_stats.get("total_count", 0)
@@ -236,10 +218,6 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
     label = "eo_pattern_analysis"
     if _is_fresh(label):
         return _cache.get(label, _PLACEHOLDER_EO_PATTERN_ANALYSIS)
-
-    if not _openai_client:
-        _set_cached(label, _PLACEHOLDER_EO_PATTERN_ANALYSIS)
-        return _PLACEHOLDER_EO_PATTERN_ANALYSIS
 
     try:
         trump2_summary = ", ".join(

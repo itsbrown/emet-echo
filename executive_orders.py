@@ -10,11 +10,7 @@ from models import ExecutiveOrder
 from summarizer import generate_summary
 from html_utils import extract_plain_text
 
-try:
-    from openai import OpenAI
-    _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-except Exception:
-    _openai_client = None
+from ai_client import chat_complete, simple_completion
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -361,10 +357,6 @@ def generate_ai_quip(order):
     ≤20 words, opinionated but fair, em-dash style.
     Stores the result in order.ai_quip and commits to the database.
     """
-    if not _openai_client:
-        logger.warning("OpenAI client not available — skipping ai_quip generation")
-        return
-
     source_text = order.ai_summary or order.summary or order.title or ""
     source_text = source_text[:1500]
 
@@ -376,19 +368,14 @@ Summary: {source_text}
 
 Return only the single sentence, no quotes, no punctuation other than the em-dash and a period at the end."""
 
-    try:
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=60,
-            temperature=0.7
-        )
-        quip = response.choices[0].message.content.strip().strip('"').strip("'")
+    quip = simple_completion("You are a helpful assistant.", prompt, max_tokens=60, temperature=0.7) or ""
+    quip = quip.strip().strip('"').strip("'")
+    if quip:
         order.ai_quip = quip
         db.session.commit()
         logger.info(f"ai_quip generated for {order.order_number}: {quip}")
-    except Exception as e:
-        logger.error(f"Error generating ai_quip for {order.order_number}: {e}")
+    else:
+        logger.warning(f"ai_quip generation returned empty for {order.order_number}")
 
 # ---------------------------------------------------------------------------
 # America First economic & crime context helpers
@@ -483,10 +470,6 @@ def generate_ai_analysis(order):
     Args:
         order: ExecutiveOrder model instance
     """
-    if not _openai_client:
-        logger.warning("OpenAI client not available — skipping AI analysis")
-        return
-
     source_text = order.full_text or order.summary or order.title or ""
     source_text = source_text[:6000]
 
@@ -508,18 +491,12 @@ def generate_ai_analysis(order):
         f"Return only valid JSON, no markdown fences."
     )
 
-    try:
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": AMERICA_FIRST_SMALL_BIZ_PROMPT},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=1200,
-            temperature=0.5
-        )
-        raw = response.choices[0].message.content.strip()
+    raw = simple_completion(AMERICA_FIRST_SMALL_BIZ_PROMPT, user_message, max_tokens=1200, temperature=0.5) or ""
+    if not raw:
+        logger.warning(f"AI analysis returned empty for {order.order_number}")
+        return
 
+    try:
         # Strip markdown fences if present
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)

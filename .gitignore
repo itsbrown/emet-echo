@@ -29,9 +29,13 @@ venv.bak/
 
 # Environment / secrets
 .env
-.env.*
+.env.local
+.env.*.local
 *.env
 *.secret
+
+# But allow the example
+!.env.example
 
 # Replit-specific
 .replit
@@ -63,3 +67,9 @@ Thumbs.db
 
 # Backup files
 *.bak
+
+# Dev-only assets and pasted notes (screenshots, old prompts, etc.)
+attached_assets/
+*.bak
+*Admin-Form*.txt
+*Pasted-*.txt

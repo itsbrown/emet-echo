@@ -203,6 +203,7 @@
             </div>
             {% else %}
             <form method="post" action="{{ url_for('executive_order_vote', order_number=order.order_number) }}" class="d-flex gap-3 flex-wrap">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" name="vote" value="yes" class="btn btn-success btn-lg px-4">
                     <i class="bi bi-hand-thumbs-up-fill me-2"></i>Helps Independents
                 </button>

@@ -1,5 +1,6 @@
 import os
 import logging
+import secrets
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from datetime import datetime, timedelta
 import json
@@ -12,9 +13,11 @@ from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
 import printify
+from constants import CONSERVATIVE_SOURCE_FRAGMENTS
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
+log_level = logging.DEBUG if os.environ.get("FLASK_DEBUG") == "1" or os.environ.get("ENV") == "development" else logging.INFO
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
 # Initialize SQLAlchemy with Flask
@@ -72,6 +75,21 @@ for _k in ("NEWS_API_KEY", "OPENAI_API_KEY", "SENDGRID_API_KEY", "PRINTIFY_API_T
 if not os.environ.get("ADMIN_TOKEN"):
     logger.warning("ADMIN_TOKEN not set - /admin/x-handles will be inaccessible (good default). Set it for admin access.")
 
+# --- Minimal CSRF support (no Flask-WTF dependency) ---
+
+@app.context_processor
+def inject_csrf():
+    def csrf_token():
+        if 'csrf_token' not in session:
+            session['csrf_token'] = secrets.token_hex(16)
+        return session['csrf_token']
+    return {'csrf_token': csrf_token}
+
+def validate_csrf(token):
+    expected = session.get('csrf_token')
+    return bool(token and expected and secrets.compare_digest(token, expected))
+# --- end CSRF ---
+
 # Custom Jinja2 filter: convert raw HTML to human-readable plain text,
 # preserving paragraph/line structure for legacy DB records that may
 # contain raw HTML from before the ingest-time extraction was added.
@@ -99,9 +117,12 @@ with app.app_context():
 # The previous unconditional ALTER/CREATE blocks that executed on every module import
 # (i.e. every gunicorn worker and `python main.py`) have been deleted.
 # They were Postgres-specific, racy across workers, and not a substitute for real migrations.
-# See scripts/post-merge.sh (updated) and consider adding Alembic later.
-# For bootstrap in dev you can still run `python -c "from app import db; db.create_all()"`
-# inside an app context, or use a dedicated migration script.
+#
+# Run explicitly when needed:
+#   python scripts/migrate.py
+#
+# See scripts/migrate.py (contains the old ensure logic + create_all) and
+# scripts/post-merge.sh. For real evolution use Alembic + Flask-Migrate.
 
 def _safe_json_loads(value, default=None):
     """Parse JSON string safely, returning default on failure or when value is falsy."""
@@ -176,7 +197,7 @@ def initialize_data():
                     content=article_data.get('content', ''),
                     url_to_image=article_data.get('urlToImage', ''),
                     category=article_data.get('category', 'general'),
-                    source_type='conservative' if any(source in article_data.get('url', '') for source in ['foxnews', 'breitbart', 'dailywire', 'nypost', 'washingtontimes', 'theepochtimes']) else 'independent'
+                    source_type='conservative' if any(source in article_data.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
                 )
                 
                 # Generate summary if content is available
@@ -221,15 +242,35 @@ def initialize_with_app_context():
     with app.app_context():
         initialize_data()
 
-# Background initialization to avoid blocking app startup
-threading.Thread(target=initialize_with_app_context).start()
+# Background jobs: 
+# - initialize_data: safe (and useful) to run per worker for in-process news cache.
+# - Scheduler (news refresh + digests): MUST run in only ONE dedicated process to avoid
+#   hammering APIs/DB and duplicate work. 
+#   Production example:
+#     # web workers
+#     gunicorn -w 4 -b 0.0.0.0:8000 main:app
+#     # scheduler worker (one)
+#     RUN_SCHEDULER=1 gunicorn -w 1 --preload main:app   # or python -c 'from app import app; ...'
+#
+# See .env.example for RUN_SCHEDULER and recommended deployment notes.
+
+# Always start per-process initializer (non-blocking, daemonized)
+threading.Thread(target=initialize_with_app_context, daemon=True).start()
 
 # Start the scheduler for periodic updates (wrapped in app context)
 def start_scheduler_with_context():
+    if os.environ.get("RUN_SCHEDULER") != "1":
+        logger.info("Skipping scheduler (RUN_SCHEDULER != 1). Run a dedicated process with RUN_SCHEDULER=1 for background jobs.")
+        return
     with app.app_context():
         start_scheduler(news_data)
-        
-threading.Thread(target=start_scheduler_with_context).start()
+
+# Only launch the scheduler thread in the dedicated process
+if os.environ.get("RUN_SCHEDULER") == "1":
+    threading.Thread(target=start_scheduler_with_context, daemon=True).start()
+    logger.info("RUN_SCHEDULER=1 detected: scheduler background thread starting in this process")
+else:
+    logger.info("Scheduler disabled for this process. Set RUN_SCHEDULER=1 for the single scheduler worker.")
 
 @app.route('/ads.txt')
 def ads_txt():
@@ -472,7 +513,7 @@ def search():
                         content=article_data.get('content', ''),
                         url_to_image=article_data.get('urlToImage', ''),
                         category=article_data.get('category', 'general'),
-                        source_type='conservative' if any(source in article_data.get('url', '') for source in ['foxnews', 'breitbart', 'dailywire', 'nypost', 'washingtontimes', 'theepochtimes']) else 'independent'
+                        source_type='conservative' if any(source in article_data.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
                     )
                     
                     # Generate summary if content is available
@@ -558,22 +599,13 @@ def article_detail(article_url):
                 except Exception:
                     omission_callouts = []
 
-            # Convert DB article to dictionary format for template
-            article = {
-                'title': db_article.title,
-                'url': db_article.url,
-                'source': {'name': db_article.source_name},
-                'publishedAt': db_article.published_at.isoformat() if db_article.published_at else '',
-                'author': db_article.author,
-                'description': db_article.description,
-                'content': db_article.content,
-                'summary': db_article.summary,
-                'urlToImage': db_article.url_to_image,
-                'published_time': db_article.published_at.strftime("%B %d, %Y") if db_article.published_at else '',
-                'ivm': ivm,
-                'bias_score': db_article.bias_score,
-                'omission_callouts': omission_callouts
-            }
+            # Convert DB article to dictionary format for template (centralized)
+            article = db_article.to_public_dict()
+            # The local pre-parsed versions (from before the model method) take precedence if present
+            if ivm is not None:
+                article['ivm'] = ivm
+            if omission_callouts:
+                article['omission_callouts'] = omission_callouts
         else:
             # If not found in DB, check in-memory cache
             # Check trending articles
@@ -606,7 +638,7 @@ def article_detail(article_url):
                     summary=article.get('summary', ''),
                     url_to_image=article.get('urlToImage', ''),
                     category=article.get('category', 'general'),
-                    source_type='conservative' if any(source in article.get('url', '') for source in ['foxnews', 'breitbart', 'dailywire', 'nypost', 'washingtontimes', 'theepochtimes']) else 'independent'
+                    source_type='conservative' if any(source in article.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
                 )
                 db.session.add(new_article)
                 db.session.commit()
@@ -905,6 +937,10 @@ def executive_order_vote(order_number):
         session_key = f'voted_eo_{order_number}'
         if session.get(session_key):
             flash("You have already voted on this executive order.", "info")
+            return redirect(url_for('executive_order_detail', order_number=order_number))
+
+        if not validate_csrf(request.form.get('csrf_token')):
+            flash("CSRF validation failed.", "danger")
             return redirect(url_for('executive_order_detail', order_number=order_number))
 
         order = ExecutiveOrder.query.filter_by(order_number=order_number).first()
@@ -1286,6 +1322,9 @@ def admin_x_handles():
 
     from models import XHandle
     if request.method == 'POST':
+        if not validate_csrf(request.form.get('csrf_token')):
+            flash("CSRF validation failed.", "danger")
+            return redirect(url_for('admin_x_handles'))
         raw = request.form.get('handles', '')
         seen = set()
         new_handles = []
