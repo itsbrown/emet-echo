@@ -1,8 +1,11 @@
 from datetime import datetime
 import json
+import logging
 
 # Import db from separate file to avoid circular imports
 from app import db
+
+from constants import CONSERVATIVE_SOURCE_FRAGMENTS
 
 class Article(db.Model):
     """Model for storing articles"""
@@ -56,6 +59,43 @@ class Article(db.Model):
             'omission_callouts': _safe_load(self.omission_callouts, default=[]),
         }
 
+    @classmethod
+    def from_news_dict(cls, data: dict):
+        """Helper to create an Article from raw NewsAPI / scraper dict (from fetch_news, search_news etc).
+        Also tolerates the 'public dict' shape from to_public_dict (for cache fallbacks).
+        Centralizes the tedious .get() and date parsing and source_type logic.
+        """
+        published_at = None
+        pub = data.get('publishedAt')
+        if pub:
+            try:
+                published_at = datetime.fromisoformat(pub.replace('Z', '+00:00'))
+            except Exception:
+                pass
+
+        # Support both raw {'source': {'name': ...}} and public {'source_name': ..., 'source': {'name':...}}
+        source = data.get('source') or {}
+        if not isinstance(source, dict):
+            source = {}
+        source_name = data.get('source_name') or source.get('name', '')
+        source_url = data.get('source_url') or source.get('url', '')
+
+        return cls(
+            title=data.get('title', 'No Title'),
+            url=data.get('url', ''),
+            source_name=source_name,
+            source_url=source_url,
+            published_at=published_at,
+            author=data.get('author', ''),
+            description=data.get('description', ''),
+            content=data.get('content', ''),
+            url_to_image=data.get('urlToImage', ''),
+            category=data.get('category', 'general'),
+            source_type='conservative' if any(
+                frag in (data.get('url') or '').lower() for frag in CONSERVATIVE_SOURCE_FRAGMENTS
+            ) else 'independent'
+        )
+
 class UserPreference(db.Model):
     """Model for storing user preferences"""
     id = db.Column(db.Integer, primary_key=True)
@@ -94,7 +134,61 @@ class ExecutiveOrder(db.Model):
     ai_quip = db.Column(db.Text)  # AI-generated punchy one-liner (≤20 words)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
+    @classmethod
+    def from_federal_register_dict(cls, data: dict):
+        """Create ExecutiveOrder from the raw dicts produced by fetch_executive_orders in executive_orders.py.
+        Centralizes date parsing and defaults.
+        """
+        date_issued = None
+        date_str = data.get('date_issued') or data.get('signing_date')
+        if date_str:
+            for fmt in ('%Y-%m-%d', '%m/%d/%Y'):
+                try:
+                    date_issued = datetime.strptime(date_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            if date_issued is None:
+                logging.getLogger(__name__).warning(f"Could not parse date '{date_str}', using current date")
+                date_issued = datetime.now()
+        else:
+            date_issued = datetime.now()
+
+        summary = data.get('summary', '')
+        if not summary and data.get('full_text'):
+            # Note: caller may still want to call summarize_order separately if needed
+            summary = data.get('summary', '')
+
+        return cls(
+            order_number=data.get('order_number') or data.get('document_number', 'UNKNOWN'),
+            title=data.get('title', 'Untitled EO'),
+            date_issued=date_issued,
+            full_text=data.get('full_text', ''),
+            summary=summary,
+            status=data.get('status', 'Active'),
+            category=data.get('category', 'Federal Regulation'),
+            url=data.get('url') or data.get('html_url', ''),
+            source=data.get('source', 'Federal Register')
+        )
+
+    def to_display_dict(self):
+        """Compact dict for home page recent_eos lists etc."""
+        return {
+            'title': self.title,
+            'date_issued': self.date_issued.strftime('%Y-%m-%d') if self.date_issued else '',
+            'category': self.category or '',
+            'order_number': self.order_number,
+        }
+
+    def to_missed_angle_dict(self, blurb: str, is_fallback: bool = False):
+        return {
+            'title': self.title,
+            'order_number': self.order_number,
+            'blurb': blurb,
+            'is_fallback': is_fallback,
+        }
+
 class EmailSubscriber(db.Model):
     """Model for storing email newsletter subscribers"""
     id = db.Column(db.Integer, primary_key=True)

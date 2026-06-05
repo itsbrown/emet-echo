@@ -292,52 +292,17 @@ def initialize_executive_orders(force_refresh=False):
                 logger.info(f"Executive order {order_data['order_number']} already exists, skipping")
                 continue
             
-            # Create new executive order
+            # Create new executive order (using centralized helper)
             try:
-                # Parse date with flexible format handling
-                date_issued = None
-                if order_data['date_issued']:
-                    date_str = order_data['date_issued']
-                    try:
-                        # Try ISO format (YYYY-MM-DD)
-                        date_issued = datetime.strptime(date_str, '%Y-%m-%d')
-                    except ValueError:
-                        try:
-                            # Try Federal Register format (YYYY-MM-DD)
-                            date_issued = datetime.strptime(date_str, '%Y-%m-%d')
-                        except ValueError:
-                            try:
-                                # Try another common format (MM/DD/YYYY)
-                                date_issued = datetime.strptime(date_str, '%m/%d/%Y')
-                            except ValueError:
-                                # Default to current date if all parsing attempts fail
-                                logger.warning(f"Could not parse date '{date_str}', using current date")
-                                date_issued = datetime.now()
-                else:
-                    # If no date provided, use current date
-                    date_issued = datetime.now()
+                new_order = ExecutiveOrder.from_federal_register_dict(order_data)
                 
-                # Generate summary if not provided
-                summary = order_data.get('summary', '')
-                if not summary and order_data['full_text']:
-                    summary = summarize_order(order_data['full_text'])
-                
-                # Create new order
-                new_order = ExecutiveOrder(
-                    order_number=order_data['order_number'],
-                    title=order_data['title'],
-                    date_issued=date_issued,
-                    full_text=order_data['full_text'],
-                    summary=summary,
-                    status=order_data.get('status', 'Active'),
-                    category=order_data.get('category', 'Federal Regulation'),
-                    url=order_data.get('url', ''),
-                    source=order_data.get('source', 'Federal Register')
-                )
+                # Generate summary if not provided by the raw data (the from_ leaves it as-is)
+                if not new_order.summary and order_data.get('full_text'):
+                    new_order.summary = summarize_order(order_data['full_text'])
                 
                 # Add to database
                 db.session.add(new_order)
-                logger.info(f"Added executive order {order_data['order_number']}")
+                logger.info(f"Added executive order {order_data.get('order_number')}")
             except Exception as e:
                 logger.error(f"Error adding executive order {order_data.get('order_number')}: {str(e)}")
                 logger.error(f"Exception details: {e}")

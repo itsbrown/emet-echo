@@ -185,20 +185,8 @@ def initialize_data():
             existing_article = Article.query.filter_by(url=article_data.get('url', '')).first()
             
             if not existing_article:
-                # Create new article in database
-                new_article = Article(
-                    title=article_data.get('title', 'No Title'),
-                    url=article_data.get('url', ''),
-                    source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
-                    source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
-                    published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
-                    author=article_data.get('author', ''),
-                    description=article_data.get('description', ''),
-                    content=article_data.get('content', ''),
-                    url_to_image=article_data.get('urlToImage', ''),
-                    category=article_data.get('category', 'general'),
-                    source_type='conservative' if any(source in article_data.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
-                )
+                # Create new article in database (centralized helper)
+                new_article = Article.from_news_dict(article_data)
                 
                 # Generate summary if content is available
                 if article_data.get('content'):
@@ -322,14 +310,7 @@ def index():
         eo_records = ExecutiveOrder.query.order_by(ExecutiveOrder.date_issued.desc()).all()
         total_eo_count = ExecutiveOrder.query.count()
         
-        recent_eos = [
-            {
-                'title': eo.title,
-                'date_issued': eo.date_issued.strftime('%Y-%m-%d') if eo.date_issued else '',
-                'category': eo.category or ''
-            }
-            for eo in eo_records
-        ]
+        recent_eos = [eo.to_display_dict() for eo in eo_records]
         
         issuance_rate = 0.0
         if eo_records and len(eo_records) >= 2:
@@ -501,20 +482,8 @@ def search():
                 existing_article = Article.query.filter_by(url=article_data.get('url', '')).first()
                 
                 if not existing_article:
-                    # Create new article in database
-                    new_article = Article(
-                        title=article_data.get('title', 'No Title'),
-                        url=article_data.get('url', ''),
-                        source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
-                        source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
-                        published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
-                        author=article_data.get('author', ''),
-                        description=article_data.get('description', ''),
-                        content=article_data.get('content', ''),
-                        url_to_image=article_data.get('urlToImage', ''),
-                        category=article_data.get('category', 'general'),
-                        source_type='conservative' if any(source in article_data.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
-                    )
+                    # Create new article in database (centralized helper)
+                    new_article = Article.from_news_dict(article_data)
                     
                     # Generate summary if content is available
                     if article_data.get('content') and not article_data.get('summary'):
@@ -624,22 +593,12 @@ def article_detail(article_url):
                     if article:
                         break
             
-            # If found in cache but not DB, store in DB for future
+            # If found in cache but not DB, store in DB for future (centralized)
             if article:
-                new_article = Article(
-                    title=article.get('title', 'No Title'),
-                    url=article.get('url', ''),
-                    source_name=article.get('source', {}).get('name', '') if article.get('source') else '',
-                    source_url=article.get('source', {}).get('url', '') if article.get('source') else '',
-                    published_at=datetime.fromisoformat(article.get('publishedAt', '').replace('Z', '+00:00')) if article.get('publishedAt') else None,
-                    author=article.get('author', ''),
-                    description=article.get('description', ''),
-                    content=article.get('content', ''),
-                    summary=article.get('summary', ''),
-                    url_to_image=article.get('urlToImage', ''),
-                    category=article.get('category', 'general'),
-                    source_type='conservative' if any(source in article.get('url', '') for source in CONSERVATIVE_SOURCE_FRAGMENTS) else 'independent'
-                )
+                new_article = Article.from_news_dict(article)
+                # summary may already be in the dict
+                if article.get('summary') and not new_article.summary:
+                    new_article.summary = article.get('summary')
                 db.session.add(new_article)
                 db.session.commit()
     except Exception as e:
@@ -828,7 +787,7 @@ def executive_orders():
                 data = json.loads(eo.indie_vs_mainstream)
                 biz_text = data.get('wins', data.get('indie', ''))
                 if biz_text:
-                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': biz_text})
+                    missed_angles.append(eo.to_missed_angle_dict(biz_text))
             except Exception:
                 pass
 
@@ -843,7 +802,7 @@ def executive_orders():
                     break
                 if eo.order_number not in seen_ids and eo.summary:
                     blurb = eo.summary[:250].rsplit(' ', 1)[0] + '…' if len(eo.summary) > 250 else eo.summary
-                    missed_angles.append({'title': eo.title, 'order_number': eo.order_number, 'blurb': blurb, 'is_fallback': True})
+                    missed_angles.append(eo.to_missed_angle_dict(blurb, is_fallback=True))
                     seen_ids.add(eo.order_number)
 
         return render_template('executive_orders.html',
@@ -1218,21 +1177,15 @@ def rfk_jr_news():
                 # Check if article already exists
                 existing = Article.query.filter_by(url=article_data.get('url', '')).first()
                 if not existing:
-                    # Create new article
-                    new_article = Article(
-                        title=article_data.get('title', 'No Title'),
-                        url=article_data.get('url', ''),
-                        source_name=article_data.get('source', {}).get('name', '') if article_data.get('source') else '',
-                        source_url=article_data.get('source', {}).get('url', '') if article_data.get('source') else '',
-                        published_at=datetime.fromisoformat(article_data.get('publishedAt', '').replace('Z', '+00:00')) if article_data.get('publishedAt') else None,
-                        author=article_data.get('author', ''),
-                        description=article_data.get('description', ''),
-                        content=article_data.get('content', ''),
-                        summary=generate_summary(article_data.get('content', '')),
-                        url_to_image=article_data.get('urlToImage', ''),
-                        category='health',
-                        source_type='independent'
-                    )
+                    # Create new article (centralized, then override health specific)
+                    new_article = Article.from_news_dict(article_data)
+                    new_article.category = 'health'
+                    new_article.source_type = 'independent'
+                    if article_data.get('content'):
+                        try:
+                            new_article.summary = generate_summary(article_data.get('content', ''))
+                        except Exception:
+                            pass
                     db.session.add(new_article)
             
             db.session.commit()

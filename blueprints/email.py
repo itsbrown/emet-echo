@@ -465,12 +465,12 @@ def get_personalized_articles(subscriber, limit=10):
         # Get latest executive orders
         exec_orders = eo_query.limit(3).all()  # Limit to 3 executive orders
         
-        # Convert executive orders to article-like format for the template
+        # Convert executive orders to article-like format for the template (could use order.to_... but url needs context)
         for order in exec_orders:
-            # Create a dictionary with the same keys as an Article would have
             order_dict = {
                 'title': f"Executive Order: {order.title}",
-                'url': url_for('executive_order_detail', order_id=order.id, _external=True),
+                # Note: using order_number in url (was previously buggy with order_id=pk)
+                'url': url_for('executive_order_detail', order_number=order.order_number, _external=True),
                 'source_name': 'White House',
                 'published_at': order.date_issued,
                 'summary': order.summary,
