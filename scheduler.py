@@ -83,20 +83,9 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
                             # Add to cache list
                             stored_articles.append(article_data)
                         else:
-                            # Use the existing article from database
-                            article_dict = {
-                                'title': existing_article.title,
-                                'url': existing_article.url,
-                                'source': {'name': existing_article.source_name},
-                                'publishedAt': existing_article.published_at.isoformat() if existing_article.published_at else '',
-                                'author': existing_article.author,
-                                'description': existing_article.description,
-                                'content': existing_article.content,
-                                'summary': existing_article.summary,
-                                'urlToImage': existing_article.url_to_image,
-                                'published_time': existing_article.published_at.strftime("%B %d, %Y") if existing_article.published_at else '',
-                                'source_type': existing_article.source_type
-                            }
+                            # Use the existing article from database (centralized)
+                            article_dict = existing_article.to_public_dict()
+                            # scheduler path historically omitted some AI fields; to_public_dict includes them safely
                             stored_articles.append(article_dict)
                     
                     # Commit all database changes

@@ -25,7 +25,30 @@ db = SQLAlchemy(model_class=Base)
 
 # Create Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
+_session_secret = os.environ.get("SESSION_SECRET")
+if not _session_secret:
+    raise RuntimeError(
+        "SESSION_SECRET environment variable is required (no default for security). "
+        "Set a long random string. See .env.example."
+    )
+app.secret_key = _session_secret
+
+def _require_admin_token():
+    """Simple admin gate using ADMIN_TOKEN env (set in .env / deployment).
+    Returns True if authorized. Callers should deny access if False.
+    Supports ?token=... (GET), form token (POST), or X-Admin-Token header.
+    """
+    expected = os.environ.get("ADMIN_TOKEN")
+    if not expected:
+        # If no token configured, be safe: deny (forces explicit setup)
+        return False
+    provided = (
+        request.args.get("token")
+        or request.form.get("token")
+        or request.headers.get("X-Admin-Token")
+        or ""
+    )
+    return provided == expected
 
 # Configure database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
@@ -35,6 +58,19 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 # Initialize the app with the extension
 db.init_app(app)
+
+# Early env validation + logging (helps catch misconfigs before heavy init/threads)
+# Critical ones cause loud logs (or prior RuntimeError for secret).
+if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+    logger.critical("DATABASE_URL is not set. Database-dependent features will fail.")
+
+for _k in ("NEWS_API_KEY", "OPENAI_API_KEY", "SENDGRID_API_KEY", "PRINTIFY_API_TOKEN"):
+    if not os.environ.get(_k):
+        logger.warning("%s not set - related features (news, AI, email, shop) will degrade gracefully.", _k)
+
+# ADMIN_TOKEN recommended for /admin/x-handles
+if not os.environ.get("ADMIN_TOKEN"):
+    logger.warning("ADMIN_TOKEN not set - /admin/x-handles will be inaccessible (good default). Set it for admin access.")
 
 # Custom Jinja2 filter: convert raw HTML to human-readable plain text,
 # preserving paragraph/line structure for legacy DB records that may
@@ -59,59 +95,13 @@ app.register_blueprint(email_bp)
 with app.app_context():
     init_email_blueprint(app, db)
 
-# Auto-migrate: ensure new ExecutiveOrder columns exist on every startup
-with app.app_context():
-    try:
-        with db.engine.connect() as conn:
-            from sqlalchemy import text
-            conn.execute(text("""
-                ALTER TABLE executive_order
-                    ADD COLUMN IF NOT EXISTS ai_summary TEXT,
-                    ADD COLUMN IF NOT EXISTS indie_vs_mainstream TEXT,
-                    ADD COLUMN IF NOT EXISTS historical_context TEXT,
-                    ADD COLUMN IF NOT EXISTS data_ties TEXT,
-                    ADD COLUMN IF NOT EXISTS poll_yes INTEGER DEFAULT 0,
-                    ADD COLUMN IF NOT EXISTS poll_no INTEGER DEFAULT 0,
-                    ADD COLUMN IF NOT EXISTS ai_quip TEXT
-            """))
-            conn.commit()
-        logger.info("ExecutiveOrder schema migration applied (IF NOT EXISTS).")
-    except Exception as _mig_err:
-        logger.warning(f"Schema migration skipped or failed (may be normal): {_mig_err}")
-
-# Auto-migrate: ensure new Article columns exist on every startup
-with app.app_context():
-    try:
-        with db.engine.connect() as conn:
-            from sqlalchemy import text as _text
-            conn.execute(_text("""
-                ALTER TABLE article
-                    ADD COLUMN IF NOT EXISTS indie_vs_mainstream TEXT,
-                    ADD COLUMN IF NOT EXISTS bias_score INTEGER,
-                    ADD COLUMN IF NOT EXISTS omission_callouts TEXT
-            """))
-            conn.commit()
-        logger.info("Article schema migration applied (IF NOT EXISTS).")
-    except Exception as _mig_err2:
-        logger.warning(f"Article schema migration skipped or failed (may be normal): {_mig_err2}")
-
-# Auto-migrate: ensure x_handle table exists on every startup
-with app.app_context():
-    try:
-        with db.engine.connect() as _conn_xh:
-            from sqlalchemy import text as _text_xh
-            _conn_xh.execute(_text_xh("""
-                CREATE TABLE IF NOT EXISTS x_handle (
-                    id SERIAL PRIMARY KEY,
-                    handle VARCHAR(100) UNIQUE NOT NULL,
-                    created_at TIMESTAMP DEFAULT NOW()
-                )
-            """))
-            _conn_xh.commit()
-        logger.info("x_handle table ensured.")
-    except Exception as _xh_err:
-        logger.warning(f"x_handle migration skipped or failed: {_xh_err}")
-
+# Schema management (runtime auto-DDL removed):
+# The previous unconditional ALTER/CREATE blocks that executed on every module import
+# (i.e. every gunicorn worker and `python main.py`) have been deleted.
+# They were Postgres-specific, racy across workers, and not a substitute for real migrations.
+# See scripts/post-merge.sh (updated) and consider adding Alembic later.
+# For bootstrap in dev you can still run `python -c "from app import db; db.create_all()"`
+# inside an app context, or use a dedicated migration script.
 
 def _safe_json_loads(value, default=None):
     """Parse JSON string safely, returning default on failure or when value is falsy."""
@@ -141,26 +131,9 @@ with app.app_context():
     except Exception as _bf_err:
         logger.warning(f"ai_quip backfill skipped: {_bf_err}")
 
-# Clear cached AI summaries so all EOs get re-analyzed with the America First perspective
-with app.app_context():
-    try:
-        from sqlalchemy import text as _text
-        with db.engine.connect() as _conn:
-            _conn.execute(_text("""
-                UPDATE executive_order
-                SET ai_summary = NULL,
-                    indie_vs_mainstream = NULL,
-                    historical_context = NULL,
-                    data_ties = NULL
-                WHERE ai_summary IS NOT NULL
-                   OR indie_vs_mainstream IS NOT NULL
-                   OR historical_context IS NOT NULL
-                   OR data_ties IS NOT NULL
-            """))
-            _conn.commit()
-        logger.info("Cleared cached AI summaries for America First re-analysis.")
-    except Exception as _clear_err:
-        logger.warning(f"AI cache clear skipped or failed: {_clear_err}")
+# NOTE: Previous destructive "clear all AI summaries on every startup" block removed.
+# Re-analysis (if ever needed) should be a deliberate admin action or versioned by prompt hash.
+# See reliability fixes in REVIEW.md and .env.example.
 
 # Ensure user has a session ID
 def get_or_create_user_id():
@@ -221,18 +194,8 @@ def initialize_data():
                 stored_articles.append(article_data)
             else:
                 # Use the existing article (could update here if needed)
-                article_dict = {
-                    'title': existing_article.title,
-                    'url': existing_article.url,
-                    'source': {'name': existing_article.source_name},
-                    'publishedAt': existing_article.published_at.isoformat() if existing_article.published_at else '',
-                    'author': existing_article.author,
-                    'description': existing_article.description,
-                    'content': existing_article.content,
-                    'summary': existing_article.summary,
-                    'urlToImage': existing_article.url_to_image,
-                    'published_time': existing_article.published_at.strftime("%B %d, %Y") if existing_article.published_at else ''
-                }
+                # Centralized via model (includes a few extra keys like bias/ivm which are ignored downstream)
+                article_dict = existing_article.to_public_dict()
                 stored_articles.append(article_dict)
         
         # Commit all database changes
@@ -289,23 +252,8 @@ def index():
         if db_articles:
             articles = []
             for article in db_articles:
-                article_dict = {
-                    'title': article.title,
-                    'url': article.url,
-                    'source': {'name': article.source_name},
-                    'publishedAt': article.published_at.isoformat() if article.published_at else '',
-                    'author': article.author,
-                    'description': article.description,
-                    'content': article.content,
-                    'summary': article.summary,
-                    'urlToImage': article.url_to_image,
-                    'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else '',
-                    'source_type': article.source_type,
-                    'bias_score': article.bias_score,
-                    'ivm': _safe_json_loads(article.indie_vs_mainstream),
-                    'omission_callouts': _safe_json_loads(article.omission_callouts, default=[])
-                }
-                articles.append(article_dict)
+                # Use centralized serializer (see models.Article.to_public_dict)
+                articles.append(article.to_public_dict())
             
             # Update the in-memory cache with the database results
             news_data["trending"] = articles
@@ -468,22 +416,8 @@ def search():
                 # Also search database for existing articles from this domain
                 db_articles = Article.query.filter(Article.url.like(f"%{domain}%")).all()
                 
-                # Convert DB articles to dictionary format
-                db_articles_dict = []
-                for article in db_articles:
-                    article_dict = {
-                        'title': article.title,
-                        'url': article.url,
-                        'source': {'name': article.source_name},
-                        'publishedAt': article.published_at.isoformat() if article.published_at else '',
-                        'author': article.author,
-                        'description': article.description,
-                        'content': article.content,
-                        'summary': article.summary,
-                        'urlToImage': article.url_to_image,
-                        'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else ''
-                    }
-                    db_articles_dict.append(article_dict)
+                # Convert DB articles to dictionary format (centralized via Article.to_public_dict)
+                db_articles_dict = [a.to_public_dict() for a in db_articles]
                 
                 # Combine results from API and database, avoiding duplicates
                 existing_urls = set(a.get('url', '') for a in articles_from_api)
@@ -505,22 +439,8 @@ def search():
                     )
                 ).all()
                 
-                # Convert DB articles to dictionary format
-                db_articles_dict = []
-                for article in db_articles:
-                    article_dict = {
-                        'title': article.title,
-                        'url': article.url,
-                        'source': {'name': article.source_name},
-                        'publishedAt': article.published_at.isoformat() if article.published_at else '',
-                        'author': article.author,
-                        'description': article.description,
-                        'content': article.content,
-                        'summary': article.summary,
-                        'urlToImage': article.url_to_image,
-                        'published_time': article.published_at.strftime("%B %d, %Y") if article.published_at else ''
-                    }
-                    db_articles_dict.append(article_dict)
+                # Convert DB articles to dictionary format (centralized via Article.to_public_dict)
+                db_articles_dict = [a.to_public_dict() for a in db_articles]
                 
                 # Combine results from API and database, avoiding duplicates
                 existing_urls = set(a.get('url', '') for a in articles_from_api)
@@ -731,22 +651,11 @@ def trump_news():
             Article.title.ilike('%trump%')
         ).order_by(Article.published_at.desc()).limit(20).all()
         
-        # Format articles for the template
+        # Format articles for the template (use centralized when possible)
         for article in trump_articles:
-            article_dict = {
-                'title': article.title,
-                'url': article.url,
-                'source': {'name': article.source_name},
-                'publishedAt': article.published_at.isoformat() if article.published_at else '',
-                'author': article.author,
-                'description': article.description,
-                'content': article.content,
-                'summary': article.summary,
-                'urlToImage': article.url_to_image,
-                'published_time': article.published_at.strftime('%B %d, %Y') if article.published_at else '',
-                'source_type': article.source_type
-            }
-            articles.append(article_dict)
+            d = article.to_public_dict()
+            d['source_type'] = article.source_type  # ensure
+            articles.append(d)
         
         # Return the template with the articles
         return render_template('trump.html', 
@@ -1368,7 +1277,13 @@ def suggest_source():
 
 @app.route('/admin/x-handles', methods=['GET', 'POST'])
 def admin_x_handles():
-    """Admin page to view and manage monitored X (Twitter) handles."""
+    """Admin page to view and manage monitored X (Twitter) handles.
+    Protected by ADMIN_TOKEN (see _require_admin_token and .env.example).
+    """
+    if not _require_admin_token():
+        flash("Unauthorized. Provide a valid admin token.", "danger")
+        return redirect(url_for('index'))
+
     from models import XHandle
     if request.method == 'POST':
         raw = request.form.get('handles', '')
@@ -1393,7 +1308,9 @@ def admin_x_handles():
 
     handles = XHandle.query.order_by(XHandle.handle).all()
     handles_text = '\n'.join(h.handle for h in handles)
-    return render_template('admin_x_handles.html', handles_text=handles_text, handles=handles)
+    # Pass the token (from query on initial GET) so the form can include it as hidden field for POSTs
+    admin_token = request.args.get("token") or ""
+    return render_template('admin_x_handles.html', handles_text=handles_text, handles=handles, admin_token=admin_token)
 
 
 @app.route('/x-posts')

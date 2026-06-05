@@ -52,6 +52,9 @@
                     <h5 class="text-white mb-1"><i class="bi bi-pencil-square me-2 text-info"></i>Update Handle List</h5>
                     <p class="text-muted mb-3" style="font-size: 0.82rem;">Enter one handle per line (the @ is optional). Saving replaces the entire list.</p>
                     <form method="post" action="{{ url_for('admin_x_handles') }}">
+                        {% if admin_token %}
+                        <input type="hidden" name="token" value="{{ admin_token }}">
+                        {% endif %}
                         <div class="mb-3">
                             <label for="handles" class="form-label text-secondary" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;">Handles (one per line)</label>
                             <textarea

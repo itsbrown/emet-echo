@@ -25,6 +25,37 @@ class Article(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    def to_public_dict(self):
+        """Central serializer for Article -> template-friendly dict.
+        Replaces many near-identical dict constructions across app.py and scheduler.
+        Callers can still override/add 'ivm' / 'omission_callouts' after loading JSON if needed.
+        """
+        import json as _json  # local to avoid top-level issues
+        def _safe_load(val, default=None):
+            if not val:
+                return default
+            try:
+                return _json.loads(val)
+            except Exception:
+                return default
+
+        return {
+            'title': self.title,
+            'url': self.url,
+            'source': {'name': self.source_name},
+            'publishedAt': self.published_at.isoformat() if self.published_at else '',
+            'author': self.author,
+            'description': self.description,
+            'content': self.content,
+            'summary': self.summary,
+            'urlToImage': self.url_to_image,
+            'published_time': self.published_at.strftime("%B %d, %Y") if self.published_at else '',
+            'source_type': self.source_type,
+            'bias_score': self.bias_score,
+            'ivm': _safe_load(self.indie_vs_mainstream),
+            'omission_callouts': _safe_load(self.omission_callouts, default=[]),
+        }
+
 class UserPreference(db.Model):
     """Model for storing user preferences"""
     id = db.Column(db.Integer, primary_key=True)

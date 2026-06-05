@@ -1,10 +1,21 @@
 #!/bin/bash
 set -e
 
-pip install -q -r requirements.txt 2>/dev/null || true
+# Emet Echo post-merge / deploy hook (updated after runtime DDL removal)
+# - Use `uv` (preferred) or pip with pyproject.toml + uv.lock
+# - Schema: no more auto ALTER/CREATE on every start. Use Alembic in future
+#   or run explicit migrations. For fresh dev DB you can do:
+#     python -c '
+#     import os
+#     os.environ.setdefault("DATABASE_URL", "sqlite:///dev.db")
+#     os.environ.setdefault("SESSION_SECRET", "dev-only-secret")
+#     from app import app, db
+#     with app.app_context():
+#         db.create_all()
+#     '
+#   (Note: some features assume Postgres; sqlite is for quick smoke tests only.)
 
-python -c "
-from app import app, db
-with app.app_context():
-    db.create_all()
-" 2>/dev/null || true
+echo "Post-merge: install deps with 'uv sync' or 'pip install -e .'"
+# uv sync --frozen || pip install -e .[dev] || true
+
+echo "Post-merge hook complete. Run migrations manually if schema changed."

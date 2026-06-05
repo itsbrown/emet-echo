@@ -70,9 +70,10 @@ Preferred communication style: Simple, everyday language.
 8. **X Posts Monitor** - Admin-curated list of X (Twitter) handles; public feed shows last 24h of posts via Playwright scraper
 
 ### Authentication
-- Session-based user identification using Flask sessions
+- Session-based user identification using Flask sessions (SESSION_SECRET now strictly required)
 - Email confirmation tokens for newsletter subscriptions
 - No user login system - relies on session IDs for preferences
+- Admin endpoints (e.g. /admin/x-handles) protected by ADMIN_TOKEN (see .env.example)
 
 ## External Dependencies
 
@@ -95,3 +96,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database
 - PostgreSQL (configured via `DATABASE_URL` environment variable)
+
+### Configuration
+- See .env.example (committed) for all variables. Copy to .env (git-ignored) and populate.
+- Dev backdoors (e.g. /email/dev-confirm) and unauthenticated admin routes were removed/hardened post-review.
