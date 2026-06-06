@@ -5,6 +5,7 @@ import trafilatura
 from datetime import datetime
 
 from constants import APPROVED_SOURCES
+from html_utils import sanitize_html
 
 logger = logging.getLogger(__name__)
 
@@ -232,18 +233,19 @@ def search_news(query, language="en", page_size=100):
 
 def fetch_article_content(url):
     """
-    Fetch full content of an article using trafilatura
-    
-    Args:
-        url: Article URL
-        
-    Returns:
-        Article content as plain text
+    Fetch full content of an article using trafilatura.
+
+    Returns sanitized (safe) content suitable for |safe rendering in templates.
+    Uses plain text extraction + bleach sanitization (defensive for any HTML in text).
+    To get rich formatted content in future: use output_format='html' here + sanitize_html.
     """
     try:
         downloaded = trafilatura.fetch_url(url)
         text = trafilatura.extract(downloaded)
-        return text if text else "Content not available"
+        if not text:
+            return "Content not available"
+        # Sanitize on ingest per security review recommendation
+        return sanitize_html(text)
     except Exception as e:
         logger.error(f"Error extracting content from {url}: {str(e)}")
         return "Content not available"

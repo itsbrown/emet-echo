@@ -38,3 +38,41 @@ def extract_plain_text(raw_html):
     extractor = _TextExtractor()
     extractor.feed(raw_html)
     return extractor.get_text()
+
+
+def sanitize_html(html_or_text, strip=True):
+    """Sanitize user/external content for safe display in templates.
+    
+    Uses bleach to remove dangerous tags/scripts while allowing a safe subset
+    of HTML (for future rich content from trafilatura output_format='html').
+    
+    For plain text content (current default), this effectively HTML-escapes it.
+    
+    Call this on ingest for 'content' fields before storing.
+    Then render the result with |safe in templates (only for sanitized fields).
+    """
+    import bleach
+
+    if not html_or_text:
+        return ""
+
+    # Safe allowlist based on common article content needs
+    allowed_tags = [
+        'p', 'br', 'strong', 'em', 'b', 'i', 'u',
+        'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+        'a', 'span', 'div'
+    ]
+    allowed_attrs = {
+        'a': ['href', 'title', 'rel', 'target'],
+        'span': ['class'],
+        'div': ['class'],
+    }
+
+    cleaned = bleach.clean(
+        html_or_text,
+        tags=allowed_tags,
+        attributes=allowed_attrs,
+        strip=strip,
+        protocols=['http', 'https', 'mailto']
+    )
+    return cleaned

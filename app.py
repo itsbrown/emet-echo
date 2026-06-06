@@ -93,7 +93,7 @@ def validate_csrf(token):
 # Custom Jinja2 filter: convert raw HTML to human-readable plain text,
 # preserving paragraph/line structure for legacy DB records that may
 # contain raw HTML from before the ingest-time extraction was added.
-from html_utils import extract_plain_text as _html_to_text
+from html_utils import extract_plain_text as _html_to_text, sanitize_html
 
 @app.template_filter('html_to_text')
 def html_to_text_filter(value):
@@ -596,6 +596,9 @@ def article_detail(article_url):
             # If found in cache but not DB, store in DB for future (centralized)
             if article:
                 new_article = Article.from_news_dict(article)
+                # Sanitize content (in case it came from unsanitized cache)
+                if new_article.content:
+                    new_article.content = sanitize_html(new_article.content)
                 # summary may already be in the dict
                 if article.get('summary') and not new_article.summary:
                     new_article.summary = article.get('summary')
