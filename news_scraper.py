@@ -4,72 +4,15 @@ import logging
 import trafilatura
 from datetime import datetime
 
+from constants import APPROVED_SOURCES
+
 logger = logging.getLogger(__name__)
 
 # Default API key (will be overridden by environment variable)
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "YOUR_API_KEY")
 NEWS_API_URL = "https://newsapi.org/v2"
 
-# List of approved conservative and independent news sources
-APPROVED_SOURCES = [
-    # Conservative news sources
-    "foxnews.com",
-    "nypost.com",
-    "washingtontimes.com",
-    "theepochtimes.com",
-    "breitbart.com",
-    "dailywire.com",
-    "oann.com",
-    "newsmax.com",
-    "theblaze.com",
-    "westernjournal.com",
-    "dailycaller.com",
-    "washingtonexaminer.com",
-    "spectator.org",
-    
-    # Independent news sources
-    "zerohedge.com",
-    "reason.com",
-    "thehill.com",
-    "realclearpolitics.com",
-    "axios.com",
-    "theintercept.com",
-    "justthenews.com",
-    "substack.com",
-    "ground.news",
-    "breakingpoints.com",
-    
-    # Additional Independent Sources
-    "rumble.com",                 # Rumble platform
-    "rumble.com/JovanHPulitzer",  # Jovan Hutton Pulitzer Rumble channel
-    "rumble.com/c/DonaldJTrumpJr", # Don Jr.'s "Triggered" show
-    "rumble.com/c/AndWeKnow",     # And We Know channel
-    "tuckercarlson.com",          # Tucker Carlson Network
-    "dailywire.com",              # Daily Wire
-    "x.com/TuckerCarlson",        # Tucker Carlson X account
-    "x.com/JovanHPulitzer",       # Jovan Hutton Pulitzer X account
-    "x.com/laralogan",            # Lara Logan X account
-    "laralogan.substack.com",     # Lara Logan's Substack
-    "rwmalonemd.substack.com",    # Dr. Robert Malone Substack
-    "x.com/RWMaloneMD",           # Dr. Robert Malone X account
-    "x.com/ScottWAtlas",          # Dr. Scott Atlas X account
-    "scottwalteratlas.substack.com", # Dr. Scott Atlas Substack
-    "twc.health",                 # The Wellness Company
-    "x.com/RobertKennedyJr",      # RFK Jr. X account
-    "childrenshealthdefense.org", # Children's Health Defense (RFK Jr.'s organization)
-    "bitchute.com",               # BitChute platform
-    "gab.com",                    # Gab platform
-    "banned.video",               # Banned.video platform
-    "frankspeech.com",            # FrankSpeech platform
-    "redvoicemedia.com",          # Red Voice Media
-    "thegatewaypundit.com",       # The Gateway Pundit
-    "redstate.com",               # Red State
-    "citizenfreepress.com",       # Citizen Free Press
-    "100percentfedup.com",        # 100% Fed Up
-    "emeralddb3.substack.com",    # Emerald Robinson's Substack
-    "warroom.org",                # War Room
-    "1a3t.short.gy"               # 107 Daily
-]
+# APPROVED_SOURCES now imported from constants.py (single source of truth, deduped)
 
 def is_approved_source(article):
     """

@@ -3,17 +3,28 @@
 **Review date:** 2026-06-05  
 **Scope:** Entire codebase (~4400 LOC Python + templates, Flask app). All files explored via list_dir, read_file (full + offset chunks for app.py ~1404 lines and executive_orders.py ~551 lines), and 15+ targeted grep searches. No code was modified.
 
-> **Post-review fixes applied (top security + reliability items):** See git diff / commit history after this review.
-> - secret_key now requires SESSION_SECRET (no dev default)
-> - dev-confirm backdoor route + references removed
-> - /admin/x-handles now gated by ADMIN_TOKEN (with form support)
-> - .env.example added with all vars + ADMIN_TOKEN
-> - Destructive AI cache clear on startup nuked
-> - Raw runtime ALTER/CREATE DDL blocks removed (with migration notes + updated post-merge.sh)
+> **Post-review fixes applied (as of 2026-06-05, commits 0f01299 + 7c02fe8 + 5611d71):** 
+> See `git log --oneline` for the three review-driven commits.
+> **Highest / High addressed:**
+> - secret_key requires SESSION_SECRET (no dev default)
+> - dev-confirm backdoor + references fully removed
+> - /admin/x-handles gated by ADMIN_TOKEN (+ form support + CSRF)
+> - .env.example + early env validation + warnings
+> - Destructive AI cache clear on every startup removed
+> - Raw runtime ALTER/CREATE DDL removed (explicit scripts/migrate.py + post-merge)
 > - Dead email_service.py deleted
-> - Early env validation + warnings added
-> - Article.to_public_dict() centralized + several duplication sites refactored in app.py + scheduler.py
-> (Full list of applied changes in the working tree after this session.)
+> - Gunicorn-safe background jobs (RUN_SCHEDULER guard + daemon threads)
+> - Central OpenAI wrapper (ai_client.py with retries, logging, singleton) + adoption
+> - NLTK downloads moved out of import time
+> - Source lists deduped + centralized in constants.py
+> - Article + EO serialization centralized (to_public_dict + from_* helpers + raw news dict helper)
+> - Basic CSRF infrastructure + protection on admin/vote (more forms pending)
+> - Packaging improvements (real name, dev deps, pytest scaffold)
+> - Dev artifacts (attached_assets) removed from git tracking + .gitignore hardened
+> - Logging now respects FLASK_DEBUG/ENV (INFO default)
+> - Scheduler timing, |safe, full budget enforcement, comprehensive tests, app factory still open (see list below).
+
+**Current remaining highest-impact open items (prioritized):** See new todo list in session or the Issues section. Top recs right now: (1) budget enforcement in ai_client, (2) |safe XSS on external content, (3) robust digest scheduler, (4) test expansion, (5) packaging polish.
 
 ---
 

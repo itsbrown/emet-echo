@@ -18,4 +18,7 @@ set -e
 echo "Post-merge: install deps with 'uv sync' or 'pip install -e .'"
 # uv sync --frozen || pip install -e .[dev] || true
 
-echo "Post-merge hook complete. Run migrations manually if schema changed."
+echo "Post-merge: running explicit schema migrations (safe to re-run)..."
+python scripts/migrate.py || echo "Migrate script non-fatal (check logs if DB not ready yet)"
+
+echo "Post-merge hook complete. For ongoing schema changes consider Alembic (see scripts/migrate.py header)."

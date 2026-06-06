@@ -1,5 +1,4 @@
 import nltk
-import ssl
 import logging
 import re
 import html
@@ -11,39 +10,40 @@ from heapq import nlargest
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Download NLTK resources - handle SSL issues gracefully
-try:
-    # Set up SSL context for downloads
-    try:
-        _create_unverified_https_context = ssl._create_unverified_context
-    except AttributeError:
-        pass
-    else:
-        ssl._create_default_https_context = _create_unverified_https_context
-    
-    # Download required NLTK data
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
-    nltk.download('stopwords')
-    print("Successfully downloaded NLTK resources")
-except Exception as e:
-    logger.error(f"Failed to download NLTK resources: {str(e)}")
-    print(f"Failed to download NLTK resources: {str(e)}")
-    
-# Verify NLTK resources are available
-required_resources = [
-    ('tokenizers/punkt', 'punkt'),
-    ('tokenizers/punkt_tab', 'punkt_tab'),
-    ('corpora/stopwords', 'stopwords')
-]
+# NOTE: NLTK data downloads removed from import time (was causing slow cold starts,
+# network calls, ssl hacks, and stdout pollution on every worker).
+# 
+# Recommended: pre-download once during image build / entrypoint / first deploy:
+#   python -c "
+#   import nltk
+#   nltk.download('punkt')
+#   nltk.download('punkt_tab')
+#   nltk.download('stopwords')
+#   "
+# Or run `python scripts/migrate.py` (we can extend it) or in your Dockerfile.
+#
+# At runtime we only verify (non-fatal) so the app can still start and
+# fall back gracefully in generate_summary.
 
-for resource_path, resource_name in required_resources:
-    try:
-        nltk.data.find(resource_path)
-        print(f"NLTK resource {resource_name} is available")
-    except LookupError:
-        print(f"NLTK resource {resource_name} is NOT available")
-        logger.warning(f"NLTK resource {resource_name} is not available")
+def _ensure_nltk_resources():
+    """Lazy / on-demand check. Call from functions that need NLTK."""
+    required_resources = [
+        ('tokenizers/punkt', 'punkt'),
+        ('tokenizers/punkt_tab', 'punkt_tab'),
+        ('corpora/stopwords', 'stopwords')
+    ]
+    missing = []
+    for resource_path, resource_name in required_resources:
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            missing.append(resource_name)
+            logger.warning(f"NLTK resource {resource_name} is not available. "
+                           "Run the pre-download command in .env.example or scripts/migrate.py.")
+    return len(missing) == 0
+
+# Do a best-effort verify on import (non-blocking, no downloads)
+_ensure_nltk_resources()
 
 def clean_html(text):
     """
@@ -97,6 +97,8 @@ def generate_summary(text, num_sentences=3, style="standard"):
     """
     if not text or text == "Content not available":
         return "Summary not available."
+    
+    _ensure_nltk_resources()
     
     # Clean any HTML from the input text
     cleaned_text = clean_html(text)
