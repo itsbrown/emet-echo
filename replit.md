@@ -102,3 +102,49 @@ Preferred communication style: Simple, everyday language.
 - Dev backdoors (e.g. /email/dev-confirm) and unauthenticated admin routes were removed/hardened post-review.
 - Background scheduler: set RUN_SCHEDULER=1 in exactly one dedicated process/worker (gunicorn multi-worker deploys will otherwise run duplicate refresh loops). See .env.example and code comments in app.py.
 - Schema migrations: run `python scripts/migrate.py` explicitly on deploy/fresh DB (no more auto DDL on import). Script lives in scripts/ and is called from post-merge.sh.
+
+### Updating to the latest code from GitHub (in Replit)
+The project is linked to https://github.com/itsbrown/emet-echo.git .
+
+**Preferred method (Replit UI):**
+1. In your Replit project, open the **Git** tab (left sidebar) or **Tools > Git**.
+2. If not connected, click **Connect to GitHub** / "Link repository" and select `itsbrown/emet-echo`.
+3. Once linked, click the **Pull** / "Pull changes" button to fetch the latest from `main`.
+4. Replit will automatically run the `[postMerge]` hook (`scripts/post-merge.sh`), which does `uv sync` and `python scripts/migrate.py`.
+
+**Fallback: Replit Shell commands (copy-paste this block):**
+```bash
+# Make sure you're in the project root (usually starts here)
+pwd
+ls -la | head -5
+
+# Fix/set the Git remote (Replit sometimes uses internal remotes)
+git remote remove origin 2>/dev/null || true
+git remote add origin https://github.com/itsbrown/emet-echo.git
+
+# Fetch and hard-reset to the latest pushed commit (this brings in all review fixes)
+git fetch origin
+git reset --hard origin/main
+
+# Reinstall Python deps (uv is used by the project)
+uv sync
+
+# Run schema migration (safe to re-run)
+python scripts/migrate.py || echo "Migration non-fatal - check if DB is ready"
+
+# Verify / run tests (use uv run so it uses the project environment)
+uv run pytest -q || echo "No pytest or tests failed (check output)"
+
+echo "Update complete. Restart the Repl / workflow for changes to take effect."
+```
+
+**Notes for the shell method:**
+- If you get "access rights" or "repository exists" errors: Connect your GitHub account in Replit (click your avatar > Connections > GitHub) or generate a GitHub Personal Access Token (repo scope) and temporarily use:
+  `git remote set-url origin https://YOUR_TOKEN@github.com/itsbrown/emet-echo.git`
+- After `reset --hard`, all files (including the new `scripts/migrate.py`, tests, etc.) will be present.
+- `uv run pytest` (not bare `pytest`) because pytest is managed by uv.
+- The path error for `migrate.py` happens when the git reset didn't complete. Run the full block above.
+- After update, restart the "Project" workflow or the whole Repl.
+- New/optional env vars (see .env.example): `OPENAI_DAILY_BUDGET_USD`, `OPENAI_DAILY_TOKEN_CAP`, `RUN_SCHEDULER=1` for the background worker.
+
+If the UI Git integration is not working, the shell reset method above is the most reliable way to get the latest code (including all review fixes for security, reliability, tests, etc.).
