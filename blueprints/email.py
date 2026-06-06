@@ -506,21 +506,23 @@ def send_all_daily_digests():
     successful_count = 0
     failed_count = 0
     
-    logger.info(f"Sending daily digests to {len(subscribers)} subscribers")
+    # Filter to only those needing a digest today (robust dedup)
+    today = datetime.utcnow().date()
+    pending = [
+        s for s in subscribers
+        if not (s.last_email_sent and s.last_email_sent.date() == today)
+    ]
     
-    for subscriber in subscribers:
-        # Skip if already sent today
-        if (subscriber.last_email_sent and 
-            subscriber.last_email_sent.date() == datetime.utcnow().date()):
-            logger.info(f"Skipping subscriber {subscriber.email}, already sent today")
-            continue
-            
-        # Send digest
-        if send_daily_digest(subscriber, db):
-            successful_count += 1
-        else:
-            failed_count += 1
-    
-    logger.info(f"Sent {successful_count} digests successfully, {failed_count} failed")
+    if pending:
+        logger.info(f"Sending daily digests to {len(pending)} subscribers")
+        for subscriber in pending:
+            # Send digest
+            if send_daily_digest(subscriber, db):
+                successful_count += 1
+            else:
+                failed_count += 1
+        logger.info(f"Sent {successful_count} digests successfully, {failed_count} failed")
+    else:
+        logger.debug("No subscribers pending daily digest today")
     
     return successful_count, failed_count

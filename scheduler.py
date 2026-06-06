@@ -6,12 +6,14 @@ from datetime import datetime
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Email digest settings
-DIGEST_HOUR = 8  # Send at 8 AM local server time
-
 def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds)
     """
-    Start a background scheduler to refresh news data and send daily digests
+    Start a background scheduler to refresh news data and send daily digests.
+    
+    Daily digests are sent to any confirmed/active subscriber who hasn't received
+    one today (based on last_email_sent). This is robust to process restarts
+    and provides automatic catch-up. The scheduler should only run in one
+    dedicated process (see RUN_SCHEDULER env and app.py).
     
     Args:
         news_data: Reference to the global news data dictionary
@@ -32,15 +34,18 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
                 
                 # Make sure all database operations use an app context
                 with app.app_context():
-                    # Check if it's time to send daily digest emails (at DIGEST_HOUR o'clock)
-                    current_time = datetime.now()
-                    if current_time.hour == DIGEST_HOUR and current_time.minute < 15:
-                        logger.info("Sending daily digest emails to subscribers")
-                        try:
-                            successful, failed = send_all_daily_digests()
-                            logger.info(f"Daily digest emails sent: {successful} successful, {failed} failed")
-                        except Exception as email_err:
-                            logger.error(f"Error sending daily digest emails: {str(email_err)}")
+                    # Check for and send any pending daily digest emails.
+                    # No fragile time window: the per-subscriber last_email_sent.date() check
+                    # (now also pre-filtered in send_all_daily_digests) ensures at-most-once per day.
+                    # This is robust to restarts, clock skew, and provides catch-up if the
+                    # scheduler starts after the nominal send time.
+                    try:
+                        successful, failed = send_all_daily_digests()
+                        # Only log at INFO if activity; the function itself logs details when sending
+                        if successful or failed:
+                            logger.info(f"Daily digest emails: {successful} successful, {failed} failed")
+                    except Exception as email_err:
+                        logger.error(f"Error sending daily digest emails: {str(email_err)}")
                     
                     # Fetch new trending articles
                     articles = fetch_news()
