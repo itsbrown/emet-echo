@@ -132,8 +132,14 @@ uv sync
 # Run schema migration (safe to re-run)
 python scripts/migrate.py || echo "Migration non-fatal - check if DB is ready"
 
-# Verify / run tests (use the Replit helper for robustness)
-bash scripts/replit-test.sh || uv run pytest -q || echo "Tests completed (some environment-specific skips expected)"
+# Verify / run tests (use the improved Replit helper - it has extra fallbacks for the common "Failed to spawn: `pytest`" error)
+bash scripts/replit-test.sh
+
+# Direct reliable command if the helper still complains:
+# uv run python -m pytest tests/test_models.py -q --tb=short
+
+# Note: bare `pytest` or even plain `uv run pytest` often fails to spawn in Replit shells.
+# Always prefer `uv run python -m pytest ...` after `uv sync`.
 
 echo "Update complete. Restart the Repl / workflow for changes to take effect."
 ```
