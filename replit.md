@@ -129,7 +129,7 @@ git reset --hard origin/main
 # Reinstall Python deps (uv is used by the project)
 uv sync
 
-# Run schema migration (safe to re-run)
+# Run schema migration + NLTK data download (safe to re-run; this will fetch punkt/stopwords etc. if missing)
 python scripts/migrate.py || echo "Migration non-fatal - check if DB is ready"
 
 # Verify / run tests (use the improved Replit helper - it has extra fallbacks for the common "Failed to spawn: `pytest`" error)
