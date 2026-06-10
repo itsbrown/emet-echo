@@ -153,4 +153,13 @@ echo "Update complete. Restart the Repl / workflow for changes to take effect."
 - After update, restart the "Project" workflow or the whole Repl.
 - New/optional env vars (see .env.example): `OPENAI_DAILY_BUDGET_USD`, `OPENAI_DAILY_TOKEN_CAP`, `RUN_SCHEDULER=1` for the background worker.
 
+**Troubleshooting "healthcheck failed" + "Error when trying to publish" (common with autoscale deployment):**
+- From logs: RSSHUB_BASE_URL is set to something like `https://google.com/404` (causing mass 404s on every x_scraper call for handles like @elonmusk etc.). This is a misconfiguration – fix in Replit Secrets: `RSSHUB_BASE_URL=https://rsshub.app` (or a working public RSSHub). We added a startup error log in x_scraper.py if it contains "google.com".
+- / route is heavy on cold start (DB loads, x_scraper fetches for many handles, AI calls, printify). Healthchecks (on mapped port) timeout or 500.
+  - Added lightweight `/health` endpoint (returns 200 fast, no work).
+  - In Replit deployment advanced settings, set health check path to `/health` if available.
+  - Set required Secrets before publish: SESSION_SECRET, DATABASE_URL, ADMIN_TOKEN (silences warning), RSSHUB_BASE_URL, and at least one API key (NEWS_API_KEY etc.). Missing keys cause graceful degradation but can contribute to slow/erring responses.
+- Use `bash scripts/replit-test.sh` (or `uv run python -m pytest ...`) to validate locally in shell.
+- The app may take time to become responsive; autoscale is strict on initial healthchecks.
+
 If the UI Git integration is not working, the shell reset method above is the most reliable way to get the latest code (including all review fixes for security, reliability, tests, etc.).

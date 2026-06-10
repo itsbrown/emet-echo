@@ -2,6 +2,7 @@ import html
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 
 import feedparser
@@ -10,6 +11,10 @@ import requests
 logger = logging.getLogger(__name__)
 
 RSSHUB_BASE_URL = os.environ.get("RSSHUB_BASE_URL", "https://rsshub.app").rstrip("/")
+
+# Warn once if the base URL looks invalid (common misconfig causing 404 spam)
+if "google.com" in RSSHUB_BASE_URL or not RSSHUB_BASE_URL.startswith(("http://", "https://")):
+    logger.error("RSSHUB_BASE_URL appears invalid (%s). Set it to a working RSSHub instance like https://rsshub.app in your environment secrets.", RSSHUB_BASE_URL)
 
 
 def _parse_timestamp(value: str) -> str:
@@ -100,12 +105,21 @@ def fetch_handle_posts(handle: str) -> list[dict]:
     return posts
 
 
+# Simple in-memory cache for X posts to avoid hammering RSSHub (and slowing / on every load)
+_x_posts_cache = {"posts": [], "error": None, "ts": 0}
+_X_CACHE_TTL = 300  # 5 minutes
+
 def fetch_all_handle_posts() -> tuple[list[dict], str | None]:
     """Load all handles from DB and fetch their posts via RSSHub.
 
     Returns (posts_list, error_message). Handles that fail are skipped
     gracefully. Posts are sorted newest first.
+    Uses short-lived cache to keep homepage responsive.
     """
+    now = time.time()
+    if now - _x_posts_cache["ts"] < _X_CACHE_TTL:
+        return _x_posts_cache["posts"], _x_posts_cache["error"]
+
     try:
         from models import XHandle
         handles = XHandle.query.order_by(XHandle.handle).all()
@@ -114,6 +128,7 @@ def fetch_all_handle_posts() -> tuple[list[dict], str | None]:
         return [], f"Database error loading handles: {exc}"
 
     if not handles:
+        _x_posts_cache.update({"posts": [], "error": None, "ts": now})
         return [], None
 
     all_posts: list[dict] = []
@@ -134,4 +149,5 @@ def fetch_all_handle_posts() -> tuple[list[dict], str | None]:
         return datetime.min
 
     all_posts.sort(key=_sort_key, reverse=True)
+    _x_posts_cache.update({"posts": all_posts, "error": None, "ts": now})
     return all_posts, None

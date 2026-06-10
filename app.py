@@ -266,6 +266,12 @@ def ads_txt():
     from flask import send_file
     return send_file(os.path.join(app.root_path, 'ads.txt'), mimetype='text/plain')
 
+
+@app.route('/health')
+def health():
+    """Lightweight healthcheck endpoint for deployments (returns 200 quickly, no heavy work)."""
+    return 'ok', 200
+
 @app.route('/')
 def index():
     """Display trending news on the homepage"""
