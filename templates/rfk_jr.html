@@ -52,7 +52,7 @@
                                         <button class="btn btn-sm btn-outline-secondary share-button" 
                                                 data-url="{{ article.url }}" 
                                                 data-title="{{ article.title }}" 
-                                                data-summary="{{ article.summary }}">
+                                                data-content="{{ article.description or article.summary or '' }}">
                                             <i class="bi bi-share me-1"></i> Share
                                         </button>
                                     </div>

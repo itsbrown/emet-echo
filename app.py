@@ -953,6 +953,9 @@ def generate_twitter_summary():
     Uses AI to create a concise, specific blurb tailored to the content.
     Falls back gracefully for non-EO articles (no more generic "New executive order..." for everything).
     """
+    data = {}
+    text = ''
+    title = ''
     try:
         data = request.get_json() or {}
         text = (data.get('text') or '').strip()

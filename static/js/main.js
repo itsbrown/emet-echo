@@ -27,63 +27,34 @@ function setupShareButtons() {
     
     // Async function to create social sharing menu, potentially with AI summary
     const createSocialShareMenu = async (target, url, title, content) => {
-        // Show a temporary loading state on the button
-        const originalButtonText = target.innerHTML;
-        target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-        target.disabled = true;
-        
-        // Remove any existing menu
+        // Remove any existing menu immediately (no long spinner)
         const existingMenu = document.querySelector('.social-share-dropdown');
         if (existingMenu) {
             existingMenu.remove();
         }
         
-        let aiSummary = null;
-        let shareTitle = title;
-        let shareText = title;
-        
-        // Try to get AI summary if content is available
-        if (content) {
-            try {
-                // Get AI-generated summary via API call
-                const response = await fetch('/api/generate-twitter-summary', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: content, title: title })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    aiSummary = data.summary;
-                    
-                    // Use the AI summary as share text
-                    if (aiSummary) {
-                        // Limit length for sharing services
-                        const maxLength = 230; // Leave room for URL
-                        shareText = aiSummary.length > maxLength 
-                            ? aiSummary.substring(0, maxLength - 3) + '...' 
-                            : aiSummary;
-                    }
-                }
-            } catch (error) {
-                console.error('Error generating AI summary:', error);
-                // Continue without AI summary if error occurs
-            }
+        let shareTitle = title || '';
+        // Prefer rich content (quip/summary we put in data-content) for specific non-generic text.
+        // This ensures the menu appears instantly with relevant copy even if AI is slow or unavailable.
+        let shareText = (content || title || '').trim();
+        if (shareText.length > 220) {
+            shareText = shareText.substring(0, 217) + '...';
         }
         
         // Add "via EmetEcho.com" to the share text (avoid doubling if the AI summary already included it)
+        if (!shareText) {
+            shareText = 'Check this out';
+        }
         if (!/via EmetEcho/i.test(shareText)) {
             shareText = shareText + " via EmetEcho.com";
         }
         
         // Encode URL and title for sharing
-        const encodedUrl = encodeURIComponent(url);
-        const encodedTitle = encodeURIComponent(title);
+        const encodedUrl = encodeURIComponent(url || '');
+        const encodedTitle = encodeURIComponent(title || '');
         const encodedShareText = encodeURIComponent(shareText);
         
-        // Create the dropdown menu
+        // Create the dropdown menu using the (rich local) text - show instantly
         const menu = document.createElement('div');
         menu.className = 'social-share-dropdown dropdown-menu p-2 show';
         menu.innerHTML = `
@@ -101,7 +72,7 @@ function setupShareButtons() {
                 <i class="bi bi-envelope me-2"></i>Email
             </a>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item copy-link" href="#" data-url="${url}">
+            <a class="dropdown-item copy-link" href="#" data-url="${url || ''}">
                 <i class="bi bi-clipboard me-2"></i>Copy link
             </a>
         `;
@@ -124,12 +95,53 @@ function setupShareButtons() {
         
         menu.style.zIndex = 1050;
         
-        // Restore button state
-        target.innerHTML = originalButtonText;
-        target.disabled = false;
-        
-        // Add to document
+        // Add to document first (instant, no blocking)
         document.body.appendChild(menu);
+        
+        // Optional background AI enhancement: if it returns fast, update the open menu's share texts
+        // (does not block menu display or cause spinner)
+        const hasInput = !!(content || title);
+        if (hasInput) {
+            // fire-and-forget, short timeout, update links if better text arrives while menu is still open
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2200);
+            fetch('/api/generate-twitter-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: content, title: title }),
+                signal: controller.signal
+            }).then(r => {
+                clearTimeout(timeoutId);
+                if (!r.ok || !menu.parentNode) return r;
+                return r.json().then(data => {
+                    const ai = (data && data.summary || '').trim();
+                    if (ai && ai.length > 5) {
+                        let improved = ai.length > 220 ? ai.substring(0, 217) + '...' : ai;
+                        if (!/via EmetEcho/i.test(improved)) {
+                            improved = improved + " via EmetEcho.com";
+                        }
+                        const enc = encodeURIComponent(improved);
+                        const items = menu.querySelectorAll('.social-share-item');
+                        items.forEach(a => {
+                            const href = a.getAttribute('href') || '';
+                            // rewrite only the text param (keep url)
+                            if (href.includes('twitter.com/intent')) {
+                                a.setAttribute('href', `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${enc}`);
+                            } else if (href.includes('facebook.com')) {
+                                a.setAttribute('href', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${enc}`);
+                            } else if (href.includes('linkedin.com')) {
+                                a.setAttribute('href', `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${enc}`);
+                            } else if (href.includes('mailto:')) {
+                                const subj = encodeURIComponent(title || 'Check this out');
+                                a.setAttribute('href', `mailto:?subject=${subj}&body=${enc}%0A%0A${encodedUrl}`);
+                            }
+                        });
+                    }
+                }).catch(()=>{});
+            }).catch(() => {
+                clearTimeout(timeoutId);
+            });
+        }
         
         // Add copy link handler
         const copyLinkButton = menu.querySelector('.copy-link');
