@@ -367,5 +367,11 @@ def generate_twitter_summary(text, max_length=200):
     
     except Exception as e:
         logger.error(f"Error generating Twitter summary: {str(e)}")
-        # Provide a generic fallback
-        return "New executive order issued by the White House. Click to read the details."
+        # Better fallback — try to use beginning of the input text
+        try:
+            fallback = ' '.join(text.split()[:25])
+            if not fallback.endswith(('.', '!', '?')):
+                fallback += '...'
+            return fallback + " via EmetEcho.com"
+        except:
+            return "New executive order issued. Click to read the details via EmetEcho.com"

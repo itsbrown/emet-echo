@@ -130,8 +130,8 @@
                     <div class="mt-2 d-flex justify-content-end">
                         <button class="btn btn-sm btn-outline-secondary share-button"
                                 data-url="{{ url_for('executive_order_detail', order_number=eo.order_number, _external=True) }}"
-                                data-title="{{ eo.title }}"
-                                data-content="{{ eo.ai_quip or '' }}">
+                                data-title="{{ eo.order_number }}: {{ eo.title }}"
+                                data-content="{{ (eo.order_number + ': ' + eo.title + ' — ' + (eo.ai_quip or eo.ai_summary or eo.summary or ''))[:280] }}">
                             <i class="bi bi-share"></i>
                             Share
                         </button>

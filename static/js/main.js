@@ -73,8 +73,10 @@ function setupShareButtons() {
             }
         }
         
-        // Add "via EmetEcho.com" to the share text
-        shareText = shareText + " via EmetEcho.com";
+        // Add "via EmetEcho.com" to the share text (avoid doubling if the AI summary already included it)
+        if (!/via EmetEcho/i.test(shareText)) {
+            shareText = shareText + " via EmetEcho.com";
+        }
         
         // Encode URL and title for sharing
         const encodedUrl = encodeURIComponent(url);

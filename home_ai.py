@@ -192,15 +192,18 @@ def generate_eo_patterns_summary(eo_stats):
             f"Recent executive orders issued:\n{recent_context}"
         )
 
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+        result = chat_complete(
+            [{"role": "user", "content": prompt}],
             max_tokens=300,
             temperature=0.5
-        )
-        result = response.choices[0].message.content.strip()
-        _set_cached(label, result)
-        return result
+        ) or ""
+        if result:
+            result = result.strip()
+            _set_cached(label, result)
+            return result
+        else:
+            _set_cached(label, _PLACEHOLDER_EO_PATTERNS)
+            return _PLACEHOLDER_EO_PATTERNS
     except Exception as e:
         logger.error(f"Error generating EO patterns summary: {e}")
         _set_cached(label, _PLACEHOLDER_EO_PATTERNS)
@@ -249,13 +252,15 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
             f"Historical administration themes:\n{hist_context}"
         )
 
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+        raw = chat_complete(
+            [{"role": "user", "content": prompt}],
             max_tokens=900,
             temperature=0.65
-        )
-        raw = response.choices[0].message.content.strip()
+        ) or ""
+
+        if not raw:
+            _set_cached(label, _PLACEHOLDER_EO_PATTERN_ANALYSIS)
+            return _PLACEHOLDER_EO_PATTERN_ANALYSIS
 
         import re as _re
         import json as _json

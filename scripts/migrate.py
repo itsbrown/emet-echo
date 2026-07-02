@@ -84,9 +84,34 @@ def ensure_schema():
         logger.info("Schema migration / bootstrap complete.")
 
 
+def ensure_nltk_data():
+    """Ensure NLTK resources are downloaded (for summarizer).
+    Downloads to default location (in Replit this is typically /home/runner/nltk_data).
+    Safe to run multiple times; only downloads if missing.
+    """
+    try:
+        import nltk
+        resources = [
+            ('punkt', 'tokenizers/punkt'),
+            ('punkt_tab', 'tokenizers/punkt_tab'),
+            ('stopwords', 'corpora/stopwords'),
+        ]
+        for name, path in resources:
+            try:
+                nltk.data.find(path)
+                logger.info(f"NLTK resource {name} already available.")
+            except LookupError:
+                logger.info(f"Downloading NLTK {name} (this may take a moment on first run)...")
+                nltk.download(name)
+                logger.info(f"NLTK {name} downloaded.")
+    except Exception as e:
+        logger.warning(f"NLTK data ensure failed or skipped (may affect summarization): {e}")
+
+
 if __name__ == "__main__":
     # Allow overriding DATABASE_URL etc from env for the script
     if not os.environ.get("DATABASE_URL"):
         print("Warning: DATABASE_URL not set. Using whatever is in the environment / .env")
     ensure_schema()
+    ensure_nltk_data()
     print("Done. You can now start the app.")

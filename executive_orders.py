@@ -213,36 +213,47 @@ def summarize_order(order_text, style="journalist"):
 
 def generate_twitter_summary_for_order(order_text):
     """
-    Generate a Twitter/X-friendly summary for an executive order
-    
-    Args:
-        order_text: Full text of the executive order
-        
-    Returns:
-        A concise summary suitable for sharing on Twitter/X
+    Generate a Twitter/X-friendly summary for an executive order.
+
+    If the provided text is short (e.g. an already-generated ai_quip), we use/enhance it
+    directly instead of running the full summarizer (which expects longer source text).
+    This prevents the generic fallback "New executive order issued by the White House..."
+    that was appearing for every share.
     """
+    if not order_text or not str(order_text).strip():
+        return "New executive order issued by the White House. Click to read the details. via EmetEcho.com"
+
     try:
-        # First clean the input text
         from summarizer import clean_html
         cleaned_text = clean_html(order_text)
-        
-        # Use our specialized Twitter summary generator
+
+        # Short input (quip or short summary) — use it directly with light enhancement
+        if len(cleaned_text) < 160:
+            summary = cleaned_text.strip()
+            if not any(kw in summary.lower() for kw in ["executive order", "eo-"]):
+                summary = "Executive Order: " + summary
+            if not summary.endswith(('.', '!', '?')):
+                summary += '.'
+            if len(summary) < 220:
+                summary += " via EmetEcho.com"
+            return summary
+
+        # Longer source text — use the proper twitter-style summarizer
         summary = generate_summary(cleaned_text, style="twitter")
-        
-        # Clean the summary text again to be extra sure it has no HTML content
         summary = clean_html(summary)
-        
-        # Add cleanup to remove Federal Register-specific formatting that might remain
         summary = re.sub(r'Federal Register|Presidential Documents|FR Doc|Pages \d+-\d+', '', summary)
-        
-        # Normalize whitespace
         summary = ' '.join(summary.split())
-        
         return summary
+
     except Exception as e:
         logger.error(f"Error generating Twitter summary: {str(e)}")
-        # Provide a generic fallback
-        return "New executive order issued by the White House. Click to read the details."
+        # Much better fallback: try to salvage something from the input
+        try:
+            from summarizer import clean_html
+            salvaged = clean_html(str(order_text))[:160].rsplit(' ', 1)[0]
+            return (salvaged + "... via EmetEcho.com").strip()
+        except:
+            return "New executive order issued by the White House. Click to read the details. via EmetEcho.com"
 
 def initialize_executive_orders(force_refresh=False):
     """
