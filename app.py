@@ -1,6 +1,7 @@
 import os
 import logging
 import secrets
+import urllib.parse
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from datetime import datetime, timedelta
 import json
@@ -9,6 +10,7 @@ import threading
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import or_
 from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
@@ -102,6 +104,12 @@ def html_to_text_filter(value):
     if '<' in value and '>' in value:
         return _html_to_text(value)
     return value
+
+@app.template_filter('urlencode')
+def urlencode_filter(value):
+    if not value:
+        return ''
+    return urllib.parse.quote(str(value), safe='')
 
 # Register blueprints
 from blueprints.email import email_bp, init_app as init_email_blueprint
@@ -1167,10 +1175,12 @@ def rfk_jr_news():
         
         # Query for RFK Jr. related articles
         rfk_articles = Article.query.filter(
-            (Article.content.ilike('%RFK%')) | 
-            (Article.content.ilike('%Robert Kennedy%')) |
-            (Article.content.ilike('%Kennedy Jr%')) |
-            (Article.source_name.ilike('%children%health%'))
+            or_(
+                Article.content.ilike('%RFK%'),
+                Article.content.ilike('%Robert Kennedy%'),
+                Article.content.ilike('%Kennedy Jr%'),
+                Article.source_name.ilike('%children%health%')
+            )
         ).order_by(Article.published_at.desc()).limit(20).all()
         
         # If we don't have enough RFK Jr. articles in the database, fetch new ones
@@ -1201,10 +1211,12 @@ def rfk_jr_news():
             
             # Get the articles we just added
             rfk_articles = Article.query.filter(
-                (Article.content.ilike('%RFK%')) | 
-                (Article.content.ilike('%Robert Kennedy%')) |
-                (Article.content.ilike('%Kennedy Jr%')) |
-                (Article.source_name.ilike('%children%health%'))
+                or_(
+                    Article.content.ilike('%RFK%'),
+                    Article.content.ilike('%Robert Kennedy%'),
+                    Article.content.ilike('%Kennedy Jr%'),
+                    Article.source_name.ilike('%children%health%')
+                )
             ).order_by(Article.published_at.desc()).limit(20).all()
         
         # Render template with articles
