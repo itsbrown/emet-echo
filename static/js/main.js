@@ -51,7 +51,7 @@ function setupShareButtons() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text: content })
+                    body: JSON.stringify({ text: content, title: title })
                 });
                 
                 if (response.ok) {

@@ -947,37 +947,75 @@ def executive_order_vote(order_number):
 @app.route('/api/generate-twitter-summary', methods=['POST'])
 def generate_twitter_summary():
     """
-    API endpoint to generate Twitter-friendly summaries for executive orders
+    API endpoint to generate engaging, relevant Twitter/X-friendly share text.
     
-    Accepts JSON object with 'text' parameter containing the full text
-    Returns JSON object with 'summary' parameter containing the Twitter-friendly summary
+    Accepts JSON with optional 'title' and 'text' (description/summary/content).
+    Uses AI to create a concise, specific blurb tailored to the content.
+    Falls back gracefully for non-EO articles (no more generic "New executive order..." for everything).
     """
     try:
-        # Get the text from the request
-        data = request.get_json()
-        if not data or 'text' not in data:
-            return jsonify({'error': 'Missing text parameter'}), 400
+        data = request.get_json() or {}
+        text = (data.get('text') or '').strip()
+        title = (data.get('title') or '').strip()
         
-        # Generate a Twitter-friendly summary
-        from executive_orders import generate_twitter_summary_for_order
+        if not text and not title:
+            return jsonify({'error': 'Missing title or text'}), 400
+        
+        from ai_client import chat_complete
         import html
         
-        # Get the text from the request
-        text = data['text']
+        # Build a smart prompt for relevant share copy
+        source = text or title
+        prompt = (
+            "Write a short, natural, engaging tweet (under 240 characters) to share this article on X/Twitter. "
+            "Make it specific to the actual story or topic — do NOT use generic phrases like 'New executive order issued'. "
+            "Capture the key point or hook from the title/summary in a conversational way. "
+            "End with ' via EmetEcho.com' only if it fits naturally without feeling forced.\n\n"
+        )
+        if title:
+            prompt += f"Title: {title}\n"
+        if text and text != title:
+            prompt += f"Summary: {text[:600]}\n"
+        prompt += "\nTweet text:"
         
-        # Generate the Twitter summary
-        twitter_summary = generate_twitter_summary_for_order(text)
+        ai_summary = chat_complete(
+            [{"role": "user", "content": prompt}],
+            max_tokens=80,
+            temperature=0.7
+        )
         
-        # Additional cleanup for JSON response
-        # Double-check that HTML entities are decoded
-        twitter_summary = html.unescape(twitter_summary)
+        if ai_summary:
+            summary = ai_summary.strip().strip('"').strip("'")
+            # Ensure it doesn't exceed reasonable length
+            if len(summary) > 240:
+                summary = summary[:237] + "..."
+            # Clean
+            summary = html.unescape(summary)
+            return jsonify({'summary': summary})
         
-        # Return the summary as JSON
-        return jsonify({'summary': twitter_summary})
+        # Fallback: use title if available, else a minimal version of text
+        if title:
+            fallback = title[:200]
+        else:
+            fallback = ' '.join(source.split()[:20])
+        if not fallback.endswith(('.', '!', '?')):
+            fallback += "..."
+        fallback = html.unescape(fallback)
+        if "via EmetEcho" not in fallback:
+            fallback += " via EmetEcho.com"
+        return jsonify({'summary': fallback})
     
     except Exception as e:
         logger.error(f"Error generating Twitter summary: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        # Last resort generic but better than before
+        fallback = (title or (data.get('text') or '')[:150]).strip()
+        if fallback:
+            if not fallback.endswith(('.', '!', '?')):
+                fallback += "..."
+            fallback += " via EmetEcho.com"
+        else:
+            fallback = "Check out this story via EmetEcho.com"
+        return jsonify({'summary': fallback})
 
 @app.route('/eo-evolution')
 def eo_evolution():
