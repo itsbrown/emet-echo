@@ -27,18 +27,18 @@ _PLACEHOLDER_EO_PATTERNS = (
 
 _PLACEHOLDER_EO_PATTERN_ANALYSIS = [
     {
-        "title": "Reagan Day 1–30 Energy Deregulation ↔ Trump II 2025",
-        "body": "Reagan's first-month energy deregulation wave closely mirrors Trump II's early energy executive orders. Both administrations moved rapidly to roll back environmental restrictions and promote domestic energy production, signaling the same coalition of interests and facing the same institutional resistance.",
-        "tag": "Energy Policy"
+        "title": "Washington Founding Precedents ↔ Trump II Executive Power",
+        "body": "George Washington established the basic practice of using the executive order for policy direction and national action. Modern presidents, including Trump II, continue and expand that original claim of unilateral authority in new policy domains.",
+        "tag": "Executive Power"
     },
     {
-        "title": "Immigration Surge: Trump I vs. Trump II",
-        "body": "Trump's second-term immigration orders show the same urgency as 2017, but with more legal architecture built in advance. The rhetorical frame is identical — national security, border control, enforcement — while the legal mechanism is more refined after first-term court battles.",
-        "tag": "Immigration"
+        "title": "Lincoln Wartime Orders ↔ Trump II National Security",
+        "body": "Lincoln issued dozens of orders during the Civil War suspending normal process for national survival. Today's national security and border EOs echo that tradition of using executive power when the president believes the nation faces an emergency.",
+        "tag": "National Security"
     },
     {
-        "title": "Deregulation Velocity Echoes Reagan's Second Wave",
-        "body": "The pace of regulatory rollbacks in the current administration rivals Reagan's 1981–1982 deregulation sprint. Both administrations framed it as economic liberation; critics in both eras warned of institutional damage that would take a generation to repair.",
+        "title": "FDR New Deal Velocity ↔ Current Early Action",
+        "body": "FDR's first term produced an extraordinary volume of orders to address the Great Depression. The pace of early Trump II orders in key areas shows a similar desire to move fast through executive action before legislative or judicial checks fully engage.",
         "tag": "Regulatory Policy"
     },
 ]
@@ -183,7 +183,7 @@ def generate_eo_patterns_summary(eo_stats):
             "Write a 3-5 sentence prose summary contextualizing executive order issuance rates. "
             "Use the statistics below — including recent EO count, issuance rate, and historical comparisons — "
             "to provide concrete, data-grounded analysis. "
-            "Compare the current rate and themes to historical norms across recent administrations. "
+            "Compare the current rate and themes to historical norms across ALL U.S. presidents from George Washington through Joe Biden. "
             "Be concise, analytical, and balanced. Write in plain prose, no bullet points.\n\n"
             f"Current administration stats:\n"
             f"  Total EOs tracked in database: {total_count}\n"
@@ -214,8 +214,10 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
     """
     Generate 3-5 pattern-match editorial cards comparing Trump II EOs to historical administrations.
 
+    Now expanded to compare against ALL modern presidents (Carter through Biden).
+
     trump2_monthly: list of {month: str, count: int} for Trump II EOs by month
-    historical_data: dict from eo_history.HISTORICAL_EO_DATA
+    historical_data: dict from eo_history.HISTORICAL_EO_DATA (all modern presidents)
     category_breakdown: dict of {category: count} for Trump II EOs
     """
     label = "eo_pattern_analysis"
@@ -234,22 +236,31 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
         ) if category_breakdown else "No category data."
 
         hist_lines = []
+        early_presidents = []
         for admin, data in historical_data.items():
+            total = data.get('total_term', 0)
             themes = ", ".join(data.get("key_themes", []))
-            hist_lines.append(f"  {admin}: key themes — {themes}; total term EOs: {data.get('total_term', '?')}")
+            if total < 50:
+                early_presidents.append(f"{admin} ({total})")
+            else:
+                hist_lines.append(f"  {admin}: key themes — {themes}; total term EOs: {total}")
+        if early_presidents:
+            hist_lines.insert(0, f"  Early presidents (Washington to ~Buchanan era, very low volume): {', '.join(early_presidents)}")
         hist_context = "\n".join(hist_lines) if hist_lines else "No historical data."
 
         prompt = (
             "You are a sharp political historian writing for Emet Echo, a conservative and independent news site. "
-            "Compare the Trump II (2025) executive order patterns to historical administrations. "
+            "Compare the Trump II (2025+) executive order patterns to historical administrations across ALL U.S. presidents "
+            "from George Washington through Joe Biden. "
+            "Draw meaningful parallels from any of these administrations where relevant — do not limit yourself to just Reagan or Trump I. "
             "Generate exactly 4 pattern-match cards. Each card must have:\n"
-            "- title: a punchy 8-12 word headline comparing a Trump II pattern to a historical parallel (e.g. 'Reagan Day 1–30 Energy Deregulation ↔ Trump II 2025 — Same Wins, New Risks')\n"
-            "- body: 2-3 sentences of analytical prose comparing the pattern, naming specific historical precedents and noting key differences or risks\n"
-            "- tag: a 1-3 word policy category label (e.g. 'Energy Policy', 'Immigration', 'Deregulation')\n\n"
+            "- title: a punchy 8-12 word headline comparing a Trump II pattern to a historical parallel (use ↔ symbol, e.g. 'Washington Precedents ↔ Trump II 2025' or 'Lincoln Wartime Orders ↔ Trump II National Security Actions')\n"
+            "- body: 2-3 sentences of analytical prose comparing the pattern, naming the specific historical president/administration and noting key similarities, differences, or risks\n"
+            "- tag: a 1-3 word policy category label (e.g. 'Executive Power', 'National Security', 'Immigration', 'Deregulation')\n\n"
             "Return a JSON array of 4 objects with keys 'title', 'body', 'tag'. No markdown fences. No preamble.\n\n"
-            f"Trump II monthly EO counts:\n{trump2_summary}\n\n"
-            f"Trump II EO categories:\n{cat_summary}\n\n"
-            f"Historical administration themes:\n{hist_context}"
+            f"Trump II monthly EO counts (first year+):\n{trump2_summary}\n\n"
+            f"Trump II EO categories (top):\n{cat_summary}\n\n"
+            f"Historical administrations (Washington → Biden) with key themes and total EOs issued during their full term(s):\n{hist_context}"
         )
 
         raw = chat_complete(

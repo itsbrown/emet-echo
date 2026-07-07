@@ -340,12 +340,23 @@ def index():
             'recent_eos': recent_eos,
             'issuance_rate_per_day': issuance_rate,
             'admin_historical': {
+                'Washington': 8,
+                'Lincoln': 48,
+                'Grant': 217,
+                'T. Roosevelt': 1081,
+                'Wilson': 1803,
+                'FDR (4 terms)': 3726,
+                'Truman': 907,
+                'Eisenhower': 484,
+                'Nixon': 346,
+                'Carter': 320,
                 'Reagan (2 terms)': 381,
+                'Bush 41': 166,
                 'Clinton (2 terms)': 364,
                 'Bush 43 (2 terms)': 291,
                 'Obama (2 terms)': 276,
-                'Trump 1st term (1 term)': 220,
-                'Biden (1 term)': 162,
+                'Trump 1st term': 220,
+                'Biden': 162,
             }
         }
 
@@ -1053,10 +1064,16 @@ def eo_evolution():
         chart_labels = list(range(1, max_day + 1))
 
         def build_cumulative_series(monthly_counts, max_day):
+            """Build a daily cumulative series from monthly counts.
+            Gracefully handles presidents with shorter or longer records."""
+            if not monthly_counts:
+                return [0.0] * max_day
+
             daily = []
             for count in monthly_counts:
                 per_day = count / 30.0
                 daily.extend([per_day] * 30)
+
             running = 0.0
             series = []
             for day in range(1, max_day + 1):
@@ -1068,6 +1085,11 @@ def eo_evolution():
 
         chart_datasets = []
         for admin_name, admin_data in HISTORICAL_EO_DATA.items():
+            # Chart only shows presidents with 100+ total EOs for readability.
+            # The full dataset (Washington through Biden) is always passed to generate_eo_pattern_analysis
+            # so the AI "Pattern Match" cards can draw from every administration in history.
+            if admin_data.get('total_term', 0) < 100:
+                continue
             series = build_cumulative_series(admin_data['monthly_counts'], max_day)
             chart_datasets.append({
                 "label": admin_name,

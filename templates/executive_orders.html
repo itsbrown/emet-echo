@@ -161,13 +161,14 @@
                 <h5 class="mb-0 text-white">Patterns &amp; Cycles: EO Issuance by Administration</h5>
             </div>
             <p style="font-size: 0.82rem; color: #6c757d; margin-bottom: 1rem;">
-                Historical first-year executive order counts reveal recurring waves of regulatory action. Major deregulation waves and policy pivots are annotated below.
+                Historical first-year executive order counts across presidents from Washington to the present reveal recurring waves of regulatory action. Major deregulation waves and policy pivots are annotated below.
             </p>
             <div style="position: relative; height: 320px;">
                 <canvas id="eoChart"></canvas>
             </div>
             <!-- Annotation Legend -->
             <div class="d-flex flex-wrap gap-3 mt-3">
+                <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#ff9f40;"></span>Carter 1977</div>
                 <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#e74c3c;"></span>Reagan 1981 Dereg. Wave</div>
                 <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#e67e22;"></span>Gingrich-era Rollbacks 1995</div>
                 <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#f39c12;"></span>Bush Post-9/11 Surge 2001</div>
@@ -176,7 +177,7 @@
                 <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#9b59b6;"></span>Biden 2021</div>
                 <div class="annotation-chip"><span class="annotation-legend-dot" style="background:#ffc107;"></span>Trump II 2025</div>
             </div>
-            <p style="font-size: 0.72rem; color: #6c757d; margin-top: 0.5rem;"><em>Source: Federal Register historical data. Trump II 2025 reflects orders tracked in this database.</em></p>
+            <p style="font-size: 0.72rem; color: #6c757d; margin-top: 0.5rem;"><em>Source: American Presidency Project / Federal Register historical data. Covers all presidents from George Washington onward. Trump II 2025 reflects orders tracked in this database.</em></p>
         </div>
 
         <!-- Missed Angles teaser -->
@@ -349,37 +350,41 @@ document.addEventListener('DOMContentLoaded', function() {
         try { Chart.register(ChartAnnotation); } catch(e) {}
     }
 
-    const labels = ['Reagan\n(1981)', 'G.H.W. Bush\n(1989)', 'Clinton\n(1993)', 'G.W. Bush\n(2001)', 'Obama\n(2009)', 'Trump I\n(2017)', 'Biden\n(2021)', 'Trump II\n(2025)*'];
-    const data = [70, 42, 57, 54, 29, 55, 77, {{ total_orders }}];
+    const labels = ['Carter\n(1977)', 'Reagan\n(1981)', 'G.H.W. Bush\n(1989)', 'Clinton\n(1993)', 'G.W. Bush\n(2001)', 'Obama\n(2009)', 'Trump I\n(2017)', 'Biden\n(2021)', 'Trump II\n(2025)*'];
+    const data = [65, 70, 42, 57, 54, 29, 55, 77, {{ total_orders }}];
 
     // Annotation config for major waves
     const annotations = {
+        carter: {
+            type: 'line', xMin: 0, xMax: 0, borderColor: '#ff9f40', borderWidth: 2, borderDash: [5,4],
+            label: { content: 'Carter Energy', enabled: true, position: 'start', color: '#ff9f40', backgroundColor: 'rgba(255,159,64,0.12)', font: { size: 10 } }
+        },
         reagan: {
-            type: 'line', xMin: 0, xMax: 0, borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 1, xMax: 1, borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Reagan Dereg.', enabled: true, position: 'start', color: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.12)', font: { size: 10 } }
         },
         gingrich: {
-            type: 'line', xMin: 2, xMax: 2, borderColor: '#e67e22', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 3, xMax: 3, borderColor: '#e67e22', borderWidth: 2, borderDash: [5,4],
             label: { content: '\'95 Rollbacks', enabled: true, position: 'start', color: '#e67e22', backgroundColor: 'rgba(230,126,34,0.12)', font: { size: 10 } }
         },
         bush: {
-            type: 'line', xMin: 3, xMax: 3, borderColor: '#f39c12', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 4, xMax: 4, borderColor: '#f39c12', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Post-9/11 Surge', enabled: true, position: 'end', color: '#f39c12', backgroundColor: 'rgba(243,156,18,0.12)', font: { size: 10 } }
         },
         obama: {
-            type: 'line', xMin: 4, xMax: 4, borderColor: '#2ecc71', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 5, xMax: 5, borderColor: '#2ecc71', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Obama Wave', enabled: true, position: 'start', color: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.12)', font: { size: 10 } }
         },
         trump1: {
-            type: 'line', xMin: 5, xMax: 5, borderColor: '#3498db', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 6, xMax: 6, borderColor: '#3498db', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Trump I', enabled: true, position: 'end', color: '#3498db', backgroundColor: 'rgba(52,152,219,0.12)', font: { size: 10 } }
         },
         biden: {
-            type: 'line', xMin: 6, xMax: 6, borderColor: '#9b59b6', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 7, xMax: 7, borderColor: '#9b59b6', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Biden 2021', enabled: true, position: 'start', color: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.12)', font: { size: 10 } }
         },
         trump2: {
-            type: 'line', xMin: 7, xMax: 7, borderColor: '#ffc107', borderWidth: 2, borderDash: [5,4],
+            type: 'line', xMin: 8, xMax: 8, borderColor: '#ffc107', borderWidth: 2, borderDash: [5,4],
             label: { content: 'Trump II', enabled: true, position: 'end', color: '#ffc107', backgroundColor: 'rgba(255,193,7,0.12)', font: { size: 10 } }
         }
     };
