@@ -10,11 +10,12 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-RSSHUB_BASE_URL = os.environ.get("RSSHUB_BASE_URL", "https://rsshub.app").rstrip("/")
+RSSHUB_BASE_URL = os.environ.get("RSSHUB_BASE_URL", "https://rsshub.app").strip().rstrip("/").rstrip()
 
 # Warn once if the base URL looks invalid (common misconfig causing 404 spam)
 if "google.com" in RSSHUB_BASE_URL or not RSSHUB_BASE_URL.startswith(("http://", "https://")):
-    logger.error("RSSHUB_BASE_URL appears invalid (%s). Set it to a working RSSHub instance like https://rsshub.app in your environment secrets.", RSSHUB_BASE_URL)
+    logger.error("RSSHUB_BASE_URL appears invalid (%s). Falling back to https://rsshub.app . Fix the secret!", RSSHUB_BASE_URL)
+    RSSHUB_BASE_URL = "https://rsshub.app"
 
 
 def _parse_timestamp(value: str) -> str:
