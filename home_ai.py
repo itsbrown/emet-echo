@@ -210,17 +210,20 @@ def generate_eo_patterns_summary(eo_stats):
         return _PLACEHOLDER_EO_PATTERNS
 
 
-def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_breakdown):
+def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_breakdown, num_cards: int = 4):
     """
-    Generate 3-5 pattern-match editorial cards comparing Trump II EOs to historical administrations.
+    Generate pattern-match editorial cards comparing Trump II EOs to historical administrations.
 
-    Now expanded to compare against ALL modern presidents (Carter through Biden).
+    Now supports a variable number of cards so we can have a "See more" / full page.
 
     trump2_monthly: list of {month: str, count: int} for Trump II EOs by month
-    historical_data: dict from eo_history.HISTORICAL_EO_DATA (all modern presidents)
+    historical_data: dict from eo_history.HISTORICAL_EO_DATA
     category_breakdown: dict of {category: count} for Trump II EOs
+    num_cards: how many cards to request (default 4 for homepage, higher for dedicated page)
     """
-    label = "eo_pattern_analysis"
+    num_cards = max(3, min(num_cards, 12))  # reasonable bounds
+    label = f"eo_pattern_analysis_{num_cards}"
+
     if _is_fresh(label):
         return _cache.get(label, _PLACEHOLDER_EO_PATTERN_ANALYSIS)
 
@@ -253,11 +256,11 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
             "Compare the Trump II (2025+) executive order patterns to historical administrations across ALL U.S. presidents "
             "from George Washington through Joe Biden. "
             "Draw meaningful parallels from any of these administrations where relevant — do not limit yourself to just Reagan or Trump I. "
-            "Generate exactly 4 pattern-match cards. Each card must have:\n"
+            f"Generate exactly {num_cards} pattern-match cards. Each card must have:\n"
             "- title: a punchy 8-12 word headline comparing a Trump II pattern to a historical parallel (use ↔ symbol, e.g. 'Washington Precedents ↔ Trump II 2025' or 'Lincoln Wartime Orders ↔ Trump II National Security Actions')\n"
             "- body: 2-3 sentences of analytical prose comparing the pattern, naming the specific historical president/administration and noting key similarities, differences, or risks\n"
             "- tag: a 1-3 word policy category label (e.g. 'Executive Power', 'National Security', 'Immigration', 'Deregulation')\n\n"
-            "Return a JSON array of 4 objects with keys 'title', 'body', 'tag'. No markdown fences. No preamble.\n\n"
+            f"Return a JSON array of {num_cards} objects with keys 'title', 'body', 'tag'. No markdown fences. No preamble.\n\n"
             f"Trump II monthly EO counts (first year+):\n{trump2_summary}\n\n"
             f"Trump II EO categories (top):\n{cat_summary}\n\n"
             f"Historical administrations (Washington → Biden) with key themes and total EOs issued during their full term(s):\n{hist_context}"
@@ -265,7 +268,7 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
 
         raw = chat_complete(
             [{"role": "user", "content": prompt}],
-            max_tokens=900,
+            max_tokens=1100,
             temperature=0.65
         ) or ""
 
@@ -282,7 +285,7 @@ def generate_eo_pattern_analysis(trump2_monthly, historical_data, category_break
         if not isinstance(cards, list) or len(cards) < 3:
             raise ValueError("Unexpected response shape")
 
-        result = cards[:5]
+        result = cards[:num_cards]
         _set_cached(label, result)
         return result
     except Exception as e:

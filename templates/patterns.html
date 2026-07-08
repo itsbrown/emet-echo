@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+
+{% block title %}All Pattern Matches | Emet Echo{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge me-3 px-3 py-2" style="background: linear-gradient(135deg, #1a0a2e, #a78bfa); color: #fff; font-size: 0.85rem; letter-spacing: 0.08em;">
+                    <i class="bi bi-puzzle me-1"></i> AI EDITORIAL
+                </span>
+                <h1 class="mb-0">All Pattern Matches</h1>
+            </div>
+            <p class="text-muted mb-1" style="font-size: 1.05rem;">
+                AI-generated historical parallels across every U.S. president from George Washington to the present.
+            </p>
+            <p class="text-muted" style="font-size: 0.9rem;">
+                Each card compares a pattern in the current administration's executive orders to similar moments in history — the same strategic moves, the same risks, different contexts.
+            </p>
+            <div class="d-flex align-items-center gap-3 mt-2">
+                <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to homepage
+                </a>
+                <span class="text-muted small">Refreshed hourly • {{ last_updated }}</span>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-4">
+
+    <!-- Cards Grid -->
+    {% if pattern_cards %}
+    <div class="row g-4">
+        {% for card in pattern_cards %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0" style="background: linear-gradient(135deg, #12121e, #1a0a2e); border-left: 4px solid #a78bfa; border: 1px solid rgba(167, 139, 250, 0.25);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <span class="badge" style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; font-size: 0.75rem; border: 1px solid rgba(167, 139, 250, 0.4); padding: 0.35rem 0.6rem;">
+                            {{ card.tag if card.tag else 'Policy Pattern' }}
+                        </span>
+                        <i class="bi bi-arrows-angle-contract text-muted" style="font-size: 1rem;"></i>
+                    </div>
+
+                    <h5 class="fw-bold mb-3" style="color: #e2d9f3; line-height: 1.35;">
+                        {{ card.title }}
+                    </h5>
+
+                    <p class="text-muted mb-0" style="font-size: 0.92rem; line-height: 1.65;">
+                        {{ card.body }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <p class="text-muted small mb-0">
+            <em>These are AI-generated editorial takes based on current Trump II executive order data compared against the complete historical record (Washington through Biden). Not a substitute for primary source research.</em>
+        </p>
+    </div>
+
+    {% else %}
+    <div class="alert alert-secondary">
+        <i class="bi bi-info-circle me-2"></i>
+        Pattern analysis is currently being generated. Please check back in a moment.
+    </div>
+    {% endif %}
+
+    <div class="mt-5 text-center">
+        <a href="{{ url_for('eo_evolution') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-bar-chart me-1"></i> View EO Evolution Charts
+        </a>
+        <a href="{{ url_for('executive_orders') }}" class="btn btn-outline-warning">
+            <i class="bi bi-file-earmark-text me-1"></i> EO Tracker
+        </a>
+    </div>
+</div>
+{% endblock %}
