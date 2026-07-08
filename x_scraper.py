@@ -60,13 +60,28 @@ def fetch_handle_posts(handle: str) -> list[dict]:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
     except requests.RequestException as exc:
-        logger.warning("x_scraper: RSSHub request failed for @%s: %s", handle, exc)
+        # Special handling for Twitter/X deprecation on public RSSHub instances
+        if "/twitter/" in url:
+            logger.warning(
+                "x_scraper: RSSHub twitter feed failed for @%s (likely due to Twitter/X API restrictions; "
+                "public RSSHub instances often return 404/empty for /twitter/ now). URL: %s Error: %s",
+                handle, url, exc
+            )
+        else:
+            logger.warning("x_scraper: RSSHub request failed for @%s: %s", handle, exc)
         return []
 
     feed = feedparser.parse(resp.text)
 
     if feed.bozo and not feed.entries:
-        logger.warning("x_scraper: could not parse feed for @%s", handle)
+        if "/twitter/" in url:
+            logger.warning(
+                "x_scraper: Twitter/X feed for @%s returned no entries (public RSSHub /twitter/ support appears broken). "
+                "Consider self-hosting RSSHub with credentials or disabling X feed.",
+                handle
+            )
+        else:
+            logger.warning("x_scraper: could not parse feed for @%s", handle)
         return []
 
     posts: list[dict] = []

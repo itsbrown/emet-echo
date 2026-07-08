@@ -420,8 +420,10 @@ def index():
     x_posts_list = []
     try:
         import x_scraper
-        all_x_posts, _ = x_scraper.fetch_all_handle_posts()
+        all_x_posts, x_err = x_scraper.fetch_all_handle_posts()
         x_posts_list = all_x_posts[:10]
+        if x_err:
+            logger.warning(f"X posts feed unavailable: {x_err}")
     except Exception as _x_err:
         logger.error(f"Error fetching X posts for homepage: {_x_err}")
         x_posts_list = []

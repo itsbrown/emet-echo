@@ -67,7 +67,7 @@ Preferred communication style: Simple, everyday language.
 5. **RFK Jr. Health News** - Dedicated section for health-related content
 6. **Source Suggestions** - User submission for new sources
 7. **Merchandise Shop** - Printify integration with featured products display
-8. **X Posts Monitor** - Admin-curated list of X (Twitter) handles; public feed shows last 24h of posts via Playwright scraper
+8. **X Posts Monitor** - Admin-curated list of X (Twitter) handles. Note: public RSSHub /twitter/ feeds are currently non-functional due to platform restrictions (see x_scraper.py and troubleshooting section).
 
 ### Authentication
 - Session-based user identification using Flask sessions (SESSION_SECRET now strictly required)
@@ -154,7 +154,7 @@ echo "Update complete. Restart the Repl / workflow for changes to take effect."
 - New/optional env vars (see .env.example): `OPENAI_DAILY_BUDGET_USD`, `OPENAI_DAILY_TOKEN_CAP`, `RUN_SCHEDULER=1` for the background worker.
 
 **Troubleshooting "healthcheck failed" + "Error when trying to publish" (common with autoscale deployment):**
-- From logs: RSSHUB_BASE_URL is set to something like `https://google.com/404` (causing mass 404s on every x_scraper call for handles like @elonmusk etc.). This is a misconfiguration – fix in Replit Secrets: `RSSHUB_BASE_URL=https://rsshub.app` (or a working public RSSHub). We added a startup error log in x_scraper.py if it contains "google.com".
+- X/Twitter feed (x_scraper) is currently non-functional. Public RSSHub instances have largely stopped working for `/twitter/` endpoints due to Twitter/X's restrictions on scraping (often return 404 or empty feeds even with correct RSSHUB_BASE_URL=https://rsshub.app). This is not a config issue in the app. See x_scraper.py for improved warnings. Options to restore: self-host RSSHub with proper Twitter credentials/cookies, or remove/disable the X feed feature.
 - / route is heavy on cold start (DB loads, x_scraper fetches for many handles, AI calls, printify). Healthchecks (on mapped port) timeout or 500.
   - Added lightweight `/health` endpoint (returns 200 fast, no work).
   - In Replit deployment advanced settings, set health check path to `/health` if available.
