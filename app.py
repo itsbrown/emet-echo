@@ -11,6 +11,7 @@ import uuid
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from summarizer import generate_summary
 from news_scraper import fetch_news, search_news
 from scheduler import start_scheduler
@@ -204,19 +205,26 @@ def initialize_data():
                         logger.error(f"Error generating summary: {str(sum_err)}")
                         new_article.summary = "Summary not available."
                 
-                # Add to database
-                db.session.add(new_article)
-                
-                # Add to list for in-memory cache
-                stored_articles.append(article_data)
+                # Add to database (safe against duplicates/races)
+                try:
+                    db.session.add(new_article)
+                    db.session.commit()
+                    # Add to list for in-memory cache
+                    stored_articles.append(article_data)
+                except IntegrityError as dup_err:
+                    db.session.rollback()
+                    logger.info(f"Skipped duplicate article during init (IntegrityError): {article_data.get('url')}")
+                    existing = Article.query.filter_by(url=article_data.get('url', '')).first()
+                    if existing:
+                        stored_articles.append(existing.to_public_dict())
+                except Exception as dup_err:
+                    db.session.rollback()
+                    logger.error(f"Error adding article during init: {dup_err}")
             else:
                 # Use the existing article (could update here if needed)
                 # Centralized via model (includes a few extra keys like bias/ivm which are ignored downstream)
                 article_dict = existing_article.to_public_dict()
                 stored_articles.append(article_dict)
-        
-        # Commit all database changes
-        db.session.commit()
         
         # Update in-memory cache
         news_data["trending"] = stored_articles
@@ -383,7 +391,7 @@ def index():
             for m, c in sorted(monthly_counts_home.items())
         ]
 
-        pattern_cards = generate_eo_pattern_analysis(trump2_monthly_home, HISTORICAL_EO_DATA, category_breakdown_home)
+        pattern_cards = generate_eo_pattern_analysis(trump2_monthly_home, HISTORICAL_EO_DATA, category_breakdown_home)  # defaults to 4 cards
     except Exception as eo_err:
         logger.error(f"Error fetching EO data for home AI: {eo_err}")
         eo_stats = {'total_count': 0, 'recent_eos': [], 'issuance_rate_per_day': 0.0, 'admin_historical': {}}
@@ -520,11 +528,16 @@ def search():
                             new_article.summary = "Summary not available."
                             article_data['summary'] = "Summary not available."
                     
-                    # Add to database
-                    db.session.add(new_article)
-            
-            # Commit all database changes
-            db.session.commit()
+                    # Add to database safely
+                    try:
+                        db.session.add(new_article)
+                        db.session.commit()
+                    except IntegrityError as dup_err:
+                        db.session.rollback()
+                        logger.info(f"Skipped duplicate article in search (IntegrityError): {article_data.get('url')}")
+                    except Exception as dup_err:
+                        db.session.rollback()
+                        logger.error(f"Error adding article in search: {dup_err}")
             
             # Cache the results
             news_data["by_keyword"][query] = {
@@ -620,15 +633,26 @@ def article_detail(article_url):
             
             # If found in cache but not DB, store in DB for future (centralized)
             if article:
-                new_article = Article.from_news_dict(article)
-                # Sanitize content (in case it came from unsanitized cache)
-                if new_article.content:
-                    new_article.content = sanitize_html(new_article.content)
-                # summary may already be in the dict
-                if article.get('summary') and not new_article.summary:
-                    new_article.summary = article.get('summary')
-                db.session.add(new_article)
-                db.session.commit()
+                try:
+                    new_article = Article.from_news_dict(article)
+                    # Sanitize content (in case it came from unsanitized cache)
+                    if new_article.content:
+                        new_article.content = sanitize_html(new_article.content)
+                    # summary may already be in the dict
+                    if article.get('summary') and not new_article.summary:
+                        new_article.summary = article.get('summary')
+                    # Double-check to avoid race with scheduler/refresh
+                    if not Article.query.filter_by(url=new_article.url or article.get('url', '')).first():
+                        db.session.add(new_article)
+                        db.session.commit()
+                    else:
+                        db.session.rollback()
+                except IntegrityError as add_err:
+                    db.session.rollback()
+                    logger.info(f"Skipped duplicate article insert for {article_url} (IntegrityError)")
+                except Exception as add_err:
+                    db.session.rollback()
+                    logger.error(f"Error adding article for {article_url}: {add_err}")
     except Exception as e:
         logger.error(f"Error retrieving article from database: {str(e)}")
         # Continue with in-memory search on error
@@ -1201,7 +1225,7 @@ def eo_evolution():
             trump2_monthly,
             HISTORICAL_EO_DATA,
             category_breakdown
-        )
+        )  # defaults to 4 cards
 
         context = {
             "chart_labels": chart_labels,
@@ -1219,6 +1243,65 @@ def eo_evolution():
         logger.error(f"Error loading EO Evolution page: {e}")
         flash(f"Error loading EO Evolution page: {str(e)}", "danger")
         return redirect(url_for('executive_orders'))
+
+
+@app.route('/patterns')
+def pattern_matches():
+    """Dedicated page showing a larger set of AI-generated historical Pattern Matches."""
+    try:
+        from models import ExecutiveOrder
+        from sqlalchemy import func
+        from eo_history import HISTORICAL_EO_DATA, TRUMP_II_INAUGURATION
+        from home_ai import generate_eo_pattern_analysis
+
+        inauguration_date = datetime.strptime(TRUMP_II_INAUGURATION, '%Y-%m-%d')
+
+        # Gather fresh Trump II data for the AI (same style as eo-evolution)
+        trump2_orders = (
+            ExecutiveOrder.query
+            .filter(ExecutiveOrder.date_issued >= inauguration_date)
+            .order_by(ExecutiveOrder.date_issued.asc())
+            .all()
+        )
+
+        monthly_counts = {}
+        category_breakdown = {}
+
+        def _split_cats(cat_str):
+            if not cat_str:
+                return []
+            return [c.strip() for c in cat_str.replace(';', ',').split(',') if c.strip()]
+
+        for order in trump2_orders:
+            if order.date_issued:
+                month_key = order.date_issued.strftime('%Y-%m')
+                monthly_counts[month_key] = monthly_counts.get(month_key, 0) + 1
+                for cat in _split_cats(order.category):
+                    category_breakdown[cat] = category_breakdown.get(cat, 0) + 1
+
+        trump2_monthly = [
+            {"month": m, "count": c}
+            for m, c in sorted(monthly_counts.items())
+        ]
+
+        # Ask for more cards on the dedicated page
+        pattern_cards = generate_eo_pattern_analysis(
+            trump2_monthly,
+            HISTORICAL_EO_DATA,
+            category_breakdown,
+            num_cards=10
+        )
+
+        return render_template(
+            'patterns.html',
+            pattern_cards=pattern_cards,
+            last_updated=datetime.now().strftime('%Y-%m-%d %H:%M')
+        )
+
+    except Exception as e:
+        logger.error(f"Error loading Pattern Matches page: {e}")
+        flash("Unable to load the full pattern matches right now.", "warning")
+        return redirect(url_for('index'))
 
 
 @app.errorhandler(404)
@@ -1268,9 +1351,15 @@ def rfk_jr_news():
                             new_article.summary = generate_summary(article_data.get('content', ''))
                         except Exception:
                             pass
-                    db.session.add(new_article)
-            
-            db.session.commit()
+                    try:
+                        db.session.add(new_article)
+                        db.session.commit()
+                    except IntegrityError as dup_err:
+                        db.session.rollback()
+                        logger.info(f"Skipped duplicate RFK article (IntegrityError): {article_data.get('url')}")
+                    except Exception as dup_err:
+                        db.session.rollback()
+                        logger.error(f"Error adding RFK article: {dup_err}")
             
             # Get the articles we just added
             rfk_articles = Article.query.filter(

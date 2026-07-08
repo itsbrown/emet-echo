@@ -2,6 +2,7 @@ import threading
 import logging
 import time
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -82,19 +83,27 @@ def start_scheduler(news_data, interval=900):  # Default 15 minutes (900 seconds
                                     new_article.summary = "Summary not available."
                                     article_data['summary'] = "Summary not available."
                             
-                            # Add to database
-                            db.session.add(new_article)
-                            
-                            # Add to cache list
-                            stored_articles.append(article_data)
+                            # Add to database safely (handle possible races/duplicates)
+                            try:
+                                db.session.add(new_article)
+                                db.session.commit()
+                                # Add to cache list
+                                stored_articles.append(article_data)
+                            except IntegrityError as dup_err:
+                                db.session.rollback()
+                                logger.info(f"Skipped duplicate article in scheduler (IntegrityError): {article_data.get('url')}")
+                                existing = Article.query.filter_by(url=article_data.get('url', '')).first()
+                                if existing:
+                                    article_dict = existing.to_public_dict()
+                                    stored_articles.append(article_dict)
+                            except Exception as dup_err:
+                                db.session.rollback()
+                                logger.error(f"Error adding article in scheduler: {dup_err}")
                         else:
                             # Use the existing article from database (centralized)
                             article_dict = existing_article.to_public_dict()
                             # scheduler path historically omitted some AI fields; to_public_dict includes them safely
                             stored_articles.append(article_dict)
-                    
-                    # Commit all database changes
-                    db.session.commit()
                     
                     # Update global data
                     news_data["trending"] = stored_articles

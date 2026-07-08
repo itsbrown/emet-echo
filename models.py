@@ -96,6 +96,18 @@ class Article(db.Model):
             ) else 'independent'
         )
 
+    @classmethod
+    def get_or_create(cls, url, **kwargs):
+        """Get existing article by url or create new one (caller must commit).
+        Returns (article, created) .
+        """
+        instance = cls.query.filter_by(url=url).first()
+        if instance:
+            return instance, False
+        instance = cls(url=url, **kwargs)
+        db.session.add(instance)
+        return instance, True
+
 class UserPreference(db.Model):
     """Model for storing user preferences"""
     id = db.Column(db.Integer, primary_key=True)
