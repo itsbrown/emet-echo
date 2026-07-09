@@ -109,7 +109,7 @@
                                     <span class="badge" style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; font-size: 0.7rem; border: 1px solid rgba(167, 139, 250, 0.4);">
                                         {{ card.tag if card.tag else 'Policy Pattern' }}
                                     </span>
-                                    <i class="bi bi-arrows-angle-contract text-muted" style="font-size: 0.85rem;"></i>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary share-button p-1" style="color: #a78bfa; border-color: rgba(167,139,250,0.4);" data-url="{{ request.url_root }}eo-evolution" data-title="{{ card.title }}" data-content="{{ card.title }} — {{ card.body }}" title="Share this pattern analysis"><i class="bi bi-share" style="font-size: 0.85rem;"></i></button>
                                 </div>
                                 <h6 class="fw-bold mb-3" style="color: #e2d9f3; font-size: 0.95rem; line-height: 1.4;">
                                     {{ card.title }}
