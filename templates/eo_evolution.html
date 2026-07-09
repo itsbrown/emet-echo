@@ -90,14 +90,17 @@
             <div class="card-header d-flex align-items-center" style="background: linear-gradient(90deg, #1a0a2e, #0f3460);">
                 <i class="bi bi-puzzle fs-5 me-2" style="color: #a78bfa;"></i>
                 <h5 class="mb-0 text-white">Pattern Match</h5>
-                <a href="/eo-evolution" class="btn btn-sm ms-auto" style="background: #a78bfa; color: #0a0a1a; border: none; font-weight: 500; font-size: 0.75rem;">
-                    View all <i class="bi bi-arrow-right ms-1"></i>
+                <a href="{{ url_for('pattern_matches') }}" class="btn btn-sm ms-auto" style="background: #a78bfa; color: #0a0a1a; border: none; font-weight: 500; font-size: 0.75rem;">
+                    View all pattern matches <i class="bi bi-arrow-right ms-1"></i>
                 </a>
                 <span class="badge ms-2" style="background: #a78bfa; color: #0a0a1a; font-size: 0.65rem;">AI Editorial</span>
             </div>
             <div class="card-body p-4">
-                <p class="text-muted mb-4" style="font-size: 0.9rem;">
+                <p class="text-muted mb-2" style="font-size: 0.9rem;">
                     AI-identified historical parallels across every U.S. president from George Washington to the present — where today's executive action echoes past administrations with the same wins, new risks, and different contexts.
+                </p>
+                <p class="text-muted mb-4" style="font-size: 0.75rem;">
+                    <em>Sample of 4 matches. <a href="{{ url_for('pattern_matches') }}" style="color:#a78bfa;">See the full set →</a></em>
                 </p>
                 {% if pattern_cards %}
                 <div class="row g-3">
@@ -109,7 +112,7 @@
                                     <span class="badge" style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; font-size: 0.7rem; border: 1px solid rgba(167, 139, 250, 0.4);">
                                         {{ card.tag if card.tag else 'Policy Pattern' }}
                                     </span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary share-button p-1" style="color: #a78bfa; border-color: rgba(167,139,250,0.4);" data-url="{{ request.url_root }}eo-evolution" data-title="{{ card.title }}" data-content="{{ card.title }} — {{ card.body }}" title="Share this pattern analysis"><i class="bi bi-share" style="font-size: 0.85rem;"></i></button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary share-button p-1" style="color: #a78bfa; border-color: rgba(167,139,250,0.4);" data-url="{{ request.url_root }}patterns" data-title="{{ card.title }}" data-content="{{ card.title }} — {{ card.body }}" title="Share this pattern analysis"><i class="bi bi-share" style="font-size: 0.85rem;"></i></button>
                                 </div>
                                 <h6 class="fw-bold mb-3" style="color: #e2d9f3; font-size: 0.95rem; line-height: 1.4;">
                                     {{ card.title }}

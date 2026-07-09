@@ -1291,7 +1291,7 @@ def pattern_matches():
             trump2_monthly,
             HISTORICAL_EO_DATA,
             category_breakdown,
-            num_cards=10
+            num_cards=12
         )
 
         return render_template(
